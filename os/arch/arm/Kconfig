@@ -25,12 +25,21 @@ config ARCH_CHIP_S5J
 	select ARMV7R_MEMINIT
 	---help---
 		Samsung IoT SoC architectures (ARM Cortex R)
+
+config ARCH_CHIP_BCM2835
+	bool "Broadcom BCM2835"
+	select ARCH_ARM1176
+	select ARCH_HAVE_MMU
+	---help---
+		Raspberry Pi Zero W architectures (ARM 11)
+
 endchoice
 
 config ARCH_CHIP
 	string
 	default "s5j"       if ARCH_CHIP_S5J
 	default "tiva"      if ARCH_CHIP_LM
+	default "bcm2835"   if ARCH_CHIP_BCM2835
 
 comment "ARM Options"
 
@@ -55,10 +64,17 @@ config ARCH_CORTEXR4
 	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 	select ARCH_HAVE_DABORTSTACK
 
+config ARCH_ARM1176
+	bool
+	select ARCH_HAVE_MMU
+	default n
+
 config ARCH_FAMILY
 	string
 	default "armv7-m"	if ARCH_CORTEXM3 || ARCH_CORTEXM4
 	default "armv7-r"	if ARCH_CORTEXR4
+	default "armv6"		if ARCH_ARM1176
+
 
 config ARMV7M_USEBASEPRI
 	bool "Use BASEPRI Register"
@@ -162,11 +178,17 @@ endif
 if ARCH_CORTEXR4
 source arch/arm/src/armv7-r/Kconfig
 endif
+if ARCH_ARM1176
+source arch/arm/src/armv6/Kconfig
+endif
 if ARCH_CHIP_LM
 source arch/arm/src/tiva/Kconfig
 endif
 if ARCH_CHIP_S5J
 source arch/arm/src/s5j/Kconfig
+endif
+if ARCH_CHIP_BCM2835
+source arch/arm/src/bcm2835/Kconfig
 endif
 
 endif

@@ -77,6 +77,13 @@
 #define getreg32(a)          (*(volatile uint32_t *)(a))
 #define putreg32(v, a)       (*(volatile uint32_t *)(a) = (v))
 
+#ifndef REG
+#define REG(x) (*(volatile uint32_t *)(x))
+#endif
+#ifndef BIT
+#define BIT(n) (1 << (n))
+#endif
+
 /* Some compiler options will convert short loads and stores into byte loads
  * and stores.  We don't want this to happen for IO reads and writes!
  */

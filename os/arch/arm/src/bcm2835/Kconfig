@@ -1,0 +1,229 @@
+#
+# For a description of the syntax of this configuration file,
+# see kconfig-language at https://www.kernel.org/doc/Documentation/kbuild/kconfig-language.txt
+#
+
+comment "Broadcom BCM2835 Chip Configuration Options"
+
+choice
+	prompt "Broadcom Chip Selection"
+	default ARCH_CHIP_RP0W
+	depends on ARCH_CHIP_BCM2835
+
+config ARCH_CHIP_RP0W
+	bool "RP0W"
+	select RP0W
+	select ARCH_ARM1176
+	select ARCH_USE_MMU
+	select ARCH_HAVE_RESET
+
+endchoice
+
+config RP0W
+	bool
+	default y
+	select BCM2835_HAVE_PWR
+	select BCM2835_HAVE_PWM0
+	select BCM2835_HAVE_PWM1
+	select BCM2835_HAVE_SPI
+	select BCM2835_HAVE_UART1
+	select BCM2835_HAVE_WATCHDOG
+	select BCM2835_HAVE_SFLASH
+
+menu "BCM2835 Peripheral Support"
+
+# These "hidden" settings determine peripheral options that are available for
+# the selection MCU.
+
+config BCM2835_HAVE_ADC
+	bool
+	default n
+
+config BCM2835_HAVE_I2C
+	bool
+	default n
+
+config BCM2835_HAVE_MCT
+	bool
+	default n
+
+config BCM2835_HAVE_PWM0
+	bool
+	default n
+
+config BCM2835_HAVE_PWM1
+	bool
+	default n
+
+config BCM2835_HAVE_PWM2
+	bool
+	default n
+
+config BCM2835_HAVE_PWM3
+	bool
+	default n
+
+config BCM2835_HAVE_PWM4
+	bool
+	default n
+
+config BCM2835_HAVE_PWM5
+	bool
+	default n
+
+config BCM2835_HAVE_PWR
+	bool
+	default n
+
+config BCM2835_HAVE_RTC
+	bool
+	default n
+
+config BCM2835_HAVE_SFLASH
+	bool
+	default n
+
+config BCM2835_HAVE_SPI
+	bool
+	default n
+
+config BCM2835_HAVE_SSS
+	bool
+	default n
+
+config BCM2835_HAVE_UART0
+	bool
+	default n
+
+config BCM2835_HAVE_UART1
+	bool
+	default n
+
+config BCM2835_HAVE_WATCHDOG
+	bool
+	default n
+
+config BCM2835_ADC
+	bool "ADC"
+	default n
+	depends on BCM2835_HAVE_ADC
+	select ANALOG
+	select ADC
+	select SCHED_WORKQUEUE
+	select SCHED_LPWORK
+	---help---
+		BCM2835 has 12-bits ADC with 4 channels. Say Y here, if you want
+		to use it.
+
+config BCM2835_SDIO
+	bool "SDIO"
+	default n
+	select ARCH_HAVE_SDIO
+
+config BCM2835_I2C
+	bool "BCM2835 I2C"
+	default n
+	depends on BCM2835_HAVE_I2C
+
+config BCM2835_MCT
+	bool
+	default n
+
+config BCM2835_TIMER0
+	bool "TIMER0"
+	default n
+	depends on BCM2835_HAVE_MCT
+	select BCM2835_MCT
+
+config BCM2835_UART_FLOWCONTROL
+	bool
+	default n
+
+config BCM2835_UART0
+	bool "UART0"
+	default n
+	depends on BCM2835_HAVE_UART0
+	select ARCH_HAVE_UART0
+	select ARCH_HAVE_SERIAL_TERMIOS
+
+config BCM2835_UART1
+	bool "UART1"
+	default n
+	depends on BCM2835_HAVE_UART1
+	select ARCH_HAVE_UART1
+	select ARCH_HAVE_SERIAL_TERMIOS
+
+config BCM2835_PWM
+	bool
+	default n
+
+config BCM2835_PWM0
+	bool "PWM0"
+	depends on BCM2835_HAVE_PWM0
+	select BCM2835_PWM
+	default n
+
+config BCM2835_PWM1
+	bool "PWM1"
+	depends on BCM2835_HAVE_PWM1
+	select BCM2835_PWM
+	default n
+
+config BCM2835_SSS
+	bool "SSS"
+	depends on BCM2835_HAVE_SSS
+	default n
+
+config BCM2835_SPI
+	bool "SPI"
+	depends on BCM2835_HAVE_SPI
+	default y
+
+config BCM2835_WATCHDOG
+	bool "Watchdog"
+	depends on BCM2835_HAVE_WATCHDOG
+	default n
+
+menu "Watchdog driver configuration"
+	depends on BCM2835_WATCHDOG
+
+config BCM2835_WATCHDOG_RESET
+	bool "BCM2835 Watchdog reset enable"
+	default n
+	depends on BCM2835_WATCHDOG
+
+endmenu
+
+
+config BCM2835_SFLASH
+	bool "SFLASH"
+	default y
+	depends on BCM2835_HAVE_SFLASH
+
+config BCM2835_PWR
+	bool "PMU"
+	default n
+	depends on BCM2835_HAVE_PWR
+
+menu "PMU Configuration"
+	depends on BCM2835_PWR
+
+config BCM2835_PWR_DSTOP
+	bool "BCM2835 DSTOP Power Mode"
+	default n
+
+config BCM2835_PWR_SLEEP
+	bool "BCM2835 SLEEP Power Mode"
+	default n
+
+endmenu
+
+config BCM2835_GPIO
+	bool "BCM2835 GPIO support"
+	default n
+
+config BCM2835_MULTIPLE_GPIO_USE_ONE_IRQ
+	bool "BCM2835 all GPIO use one interrupt"
+	default y
+
+endmenu

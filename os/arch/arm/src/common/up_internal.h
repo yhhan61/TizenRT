@@ -358,7 +358,7 @@ void up_systemreset(void) noreturn_function;
 
 void up_irqinitialize(void);
 
-#if defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || defined(CONFIG_ARCH_CORTEXR4)
+#if defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_ARM1176)
 
 /* Interrupt acknowledge and dispatch */
 

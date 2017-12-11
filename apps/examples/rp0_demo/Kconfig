@@ -1,0 +1,8 @@
+config RP0_DEMO
+	bool "Raspberry Pi 0 Board Example"
+	select I2C
+	select I2C_USERIO
+	select BCM2835_I2C
+	default n
+	---help---
+		Enable the Raspberry Pi 0 Board Example

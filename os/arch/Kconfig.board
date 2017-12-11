@@ -12,6 +12,12 @@ choice
 		be available for selection.  Use ARCH_BOARD_CUSTOM to create a new
 		board configuration.
 
+config ARCH_BOARD_RP0W
+	bool "Raspberry Pi Zero W"
+	depends on ARCH_CHIP_BCM2835
+	---help---
+		Raspberry Pi Zero W based on BCM2835 chip
+
 config ARCH_BOARD_ARTIK053
 	bool "Samsung ARTIK-053 Starter Kit"
 	depends on ARCH_CHIP_S5JT200
@@ -63,6 +69,7 @@ config ARCH_BOARD
 	default "artik05x"           if ARCH_BOARD_ARTIK05X_FAMILY
 	default "lm3s6965-ek"        if ARCH_BOARD_LM3S6965EK
 	default "sidk_s5jt200"       if ARCH_BOARD_SIDK_S5JT200
+	default "rp0w"				 if ARCH_BOARD_RP0W
 
 comment "Common Board Options"
 
@@ -197,3 +204,7 @@ endif
 if ARCH_BOARD_SIDK_S5JT200
 source arch/arm/src/sidk_s5jt200/Kconfig
 endif
+if ARCH_BOARD_RP0W
+source arch/arm/src/rp0w/Kconfig
+endif
+
