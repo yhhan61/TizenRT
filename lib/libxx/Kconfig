@@ -22,14 +22,6 @@ config HAVE_CXX
 
 if HAVE_CXX
 
-config HAVE_CXXINITIALIZE
-	bool "Have C++ initialization"
-	default n
-	---help---
-		The platform-specific logic includes support for initialization
-		of static C++ instances for this architecture and for the selected
-		toolchain (via up_cxxinitialize()).
-
 config CXX_NEWLONG
 	bool "size_t is type long"
 	default n
@@ -38,26 +30,26 @@ config CXX_NEWLONG
 		C++ library routines because the TinyAra size_t might not have
 		the same underlying type as your toolchain's size_t.
 
-comment "uClibc++ Standard C++ Library"
 
-config UCLIBCXX
-	bool "Build uClibc++ (must be installed)"
+comment "LLVM C++ Library (libcxx)"
+
+config LIBCXX
+	bool "Build LLVM libcxx"
 	default n
 	---help---
-		If you have installed uClibc++ into the TinyAra source try, then it can
-		be built by selecting this option.
+		LLVM libc++ can be built by selecting this option.
 
-if UCLIBCXX
+if LIBCXX
 
-config UCLIBCXX_EXCEPTION
+config LIBCXX_EXCEPTION
 	bool "Enable Exception Suppport"
 	default y
 
-config UCLIBCXX_IOSTREAM_BUFSIZE
+config LIBCXX_IOSTREAM_BUFSIZE
 	int "IO Stream Buffer Size"
 	default 32
 
-config UCLIBCXX_HAVE_LIBSUPCXX
+config LIBCXX_HAVE_LIBSUPCXX
 	bool "Have libsupc++ (required)"
 	default y
 	---help---
@@ -65,4 +57,5 @@ config UCLIBCXX_HAVE_LIBSUPCXX
 		at present because the built-in libsupc++ support is incomplete.
 
 endif
+
 endif

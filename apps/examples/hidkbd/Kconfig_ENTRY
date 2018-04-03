@@ -1,0 +1,3 @@
+config ENTRY_HIDKBD
+	bool "USB HID keyboard example"
+	depends on EXAMPLES_HIDKBD

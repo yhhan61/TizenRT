@@ -54,7 +54,9 @@
 -include $(TOPDIR)/Make.defs
 
 ASRCS		=
+ifeq ($(CONFIG_SCSC_WLAN),y)
 CSRCS		= slsi_wifi_api.c slsi_wifi_utils.c
+endif
 
 CFLAGS += -I$(TOPDIR)$(DELIM)$(EXTDIR)$(DELIM)wpa_supplicant$(DELIM)src
 

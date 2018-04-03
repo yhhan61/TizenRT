@@ -844,6 +844,23 @@ struct cdc_linecoding_s {
 };
 #define SIZEOF_CDC_LINECODING 7
 
+/* Messages are formatted as a standardized 8-byte header, followed by a variable-length
+ * data field. The header identifies the kind of notification, and the interface associated
+ * with the notification; it also indicates the length of the variable length portion of
+ * the message
+ */
+
+struct cdc_notification_s
+{
+  uint8_t type;                /* bmRequestType */
+  uint8_t notification;        /* bNotification */
+  uint8_t value[2];            /* wValue */
+  uint8_t index[2];            /* wIndex - interface */
+  uint8_t len[2];              /* wLength - length of variable data */
+  uint8_t data[1];             /* Variable length data begins here */
+};
+#define SIZEOF_NOTIFICATION_S(n) (sizeof(struct cdc_notification_s) + (n) - 1)
+
 /* Table 55: Line Status Information Structure */
 
 struct cdc_linestatus_s {

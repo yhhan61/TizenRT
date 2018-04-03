@@ -85,6 +85,9 @@ static int tash_exit(int argc, char **args);
 #if defined(CONFIG_BOARDCTL_RESET)
 static int tash_reboot(int argc, char **argv);
 #endif
+#ifdef CONFIG_BRCM_WLAN
+static int bring_up_cyw43438(int argc, char **args);
+#endif
 
 extern tash_taskinfo_t tash_taskinfo_list[];
 /****************************************************************************
@@ -97,8 +100,11 @@ static struct tash_cmd_info_s tash_cmds_info = {PTHREAD_MUTEX_INITIALIZER};
 const static tash_cmdlist_t tash_basic_cmds[] = {
 	{"exit",  tash_exit,   TASH_EXECMD_SYNC},
 	{"help",  tash_help,   TASH_EXECMD_SYNC},
-#ifndef CONFIG_DISABLE_ENVIRON
+#ifdef CONFIG_TASH_SCRIPT
 	{"sh",    tash_script, TASH_EXECMD_SYNC},
+#endif
+#ifdef CONFIG_BRCM_WLAN
+	{"wifion",  bring_up_cyw43438,   TASH_EXECMD_SYNC},
 #endif
 #ifndef CONFIG_DISABLE_SIGNALS
 	{"sleep", tash_sleep,  TASH_EXECMD_SYNC},
@@ -171,6 +177,16 @@ static int tash_exit(int argc, char **args)
 	tash_running = FALSE;
 	exit(0);
 }
+
+#if defined CONFIG_BRCM_WLAN
+static int bring_up_cyw43438(int argc, char **args)
+{
+extern	void rpi0w_brcm_wlan_driver_initialize(void);
+	rpi0w_brcm_wlan_driver_initialize();
+
+	return 0;
+}
+#endif
 
 #if defined(CONFIG_BOARDCTL_RESET)
 static int tash_reboot(int argc, char **argv)
@@ -281,8 +297,12 @@ int tash_execute_cmd(char **args, int argc)
 int tash_cmd_install(const char *str, TASH_CMD_CALLBACK cb, int thread_exec)
 {
 	int cmd_idx;
+	static int fail_cmd_count = 0;
 
 	if (TASH_MAX_COMMANDS == tash_cmds_info.count) {
+		printf("Allowed Max tash cmds: %d and Current tash cmd count: %d\n",
+				TASH_MAX_COMMANDS, tash_cmds_info.count + ++fail_cmd_count);
+		printf("Couldn't install cmd: (%s), Refer CONFIG_TASH_MAX_COMMANDS\n", str);
 		return -1;				/* MAX cmd count reached */
 	}
 

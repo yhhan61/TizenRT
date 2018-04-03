@@ -58,8 +58,10 @@
 static struct spi_dev_s *spi_dev;
 
 /* SFLASH Clock Frequency */
-#define SFLAH_CLOCK 	1000000
-#define SFLAH_MODE 	0			/* CPOL & CPHA */
+#define SFLASH_CLOCK 	1000000
+#define SFLASH_MODE 	0			/* CPOL & CPHA */
+#define SFLASH_HEAD 	4
+#define SFLASH_PAGE_SIZE 	1024
 
 #define SFLASH_CHIP_ERASE
 
@@ -86,7 +88,9 @@ static unsigned char sflash_is_write_busy(void);
 static int sflash_write_array(unsigned long addr, unsigned char *pData, int ncount);
 static void sflash_read_array(unsigned long addr, unsigned char *pData, unsigned int ncount);
 static unsigned char sflash_read_byte(unsigned long addr);
+static int sflash_read_page(unsigned long addr, unsigned char *pData);
 static void sflash_write_byte(unsigned long addr, unsigned char data);
+static int sflash_write_page(unsigned long addr, unsigned char *pData);
 static void sflash_sector_erase(unsigned long addr);
 static void sflash_chip_erase(void);
 static void sflash_reset_write_protection(void);
@@ -172,9 +176,9 @@ static unsigned char sflash_is_write_busy(void)
 static void sflash_read_array(unsigned long addr, unsigned char *pData, unsigned int ncount)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char buf[ncount + 4];
 
 	/* set read command */
@@ -233,9 +237,9 @@ static int sflash_write_array(unsigned long addr, unsigned char *pData, int ncou
 static unsigned char sflash_read_byte(unsigned long addr)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char data;
 	unsigned char buf[10];
 
@@ -264,12 +268,45 @@ static unsigned char sflash_read_byte(unsigned long addr)
 	return data;
 }
 
+static int sflash_read_page(unsigned long addr, unsigned char *pData)
+{
+	int port = 0;
+	int freq = SFLASH_CLOCK;
+	int bits = 8;
+	int conf = SFLASH_MODE;
+	int pagesize = SFLASH_PAGE_SIZE;
+	unsigned char buffer[pagesize+SFLASH_HEAD];
+
+	/* set read command */
+	buffer[0] = _SERIAL_FLASH_CMD_READ;
+
+	/* set read address */
+	buffer[1] = (addr >> 16) & 0xFF;
+	buffer[2] = (addr >> 8) & 0xFF;
+	buffer[3] = (addr >> 0) & 0xFF;
+
+	SPI_LOCK(spi_dev, true);
+
+	SPI_SETFREQUENCY(spi_dev, freq);
+	SPI_SETBITS(spi_dev, bits);
+	SPI_SETMODE(spi_dev, conf);
+	SPI_SELECT(spi_dev, port, true);
+	SPI_RECVBLOCK(spi_dev, &buffer, pagesize+SFLASH_HEAD);
+	SPI_SELECT(spi_dev, port, false);
+
+	SPI_LOCK(spi_dev, false);
+
+	memcpy(pData, &buffer[4], pagesize);
+
+	return pagesize;
+}
+
 static void sflash_write_byte(unsigned long addr, unsigned char data)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char buf[10];
 
 	/* write enable */
@@ -304,12 +341,55 @@ static void sflash_write_byte(unsigned long addr, unsigned char data)
 	sflash_write_enable(FALSE);
 }
 
+static int sflash_write_page(unsigned long addr, unsigned char *pData)
+{
+	int port = 0;
+	int freq = SFLASH_CLOCK;
+	int bits = 8;
+	int conf = SFLASH_MODE;
+	int pagesize = 256;
+	unsigned char buffer[pagesize+SFLASH_HEAD];
+
+	/* write enable */
+	sflash_write_enable(TRUE);
+
+	/* set write command */
+	buffer[0] = _SERIAL_FLASH_CMD_WRITE;
+
+	/* set write address */
+	buffer[1] = (addr >> 16) & 0xFF;
+	buffer[2] = (addr >> 8) & 0xFF;
+	buffer[3] = (addr >> 0) & 0xFF;
+
+	/* set write data */
+	memcpy(&buffer[4], pData, pagesize);
+
+	SPI_LOCK(spi_dev, true);
+
+	SPI_SETFREQUENCY(spi_dev, freq);
+	SPI_SETBITS(spi_dev, bits);
+	SPI_SETMODE(spi_dev, conf);
+	SPI_SELECT(spi_dev, port, true);
+	SPI_SNDBLOCK(spi_dev, &buffer, pagesize+SFLASH_HEAD);
+	SPI_SELECT(spi_dev, port, false);
+
+	SPI_LOCK(spi_dev, false);
+
+	// Wait for write end
+	while (sflash_is_write_busy()) ;
+
+	/* write disable */
+	sflash_write_enable(FALSE);
+
+	return pagesize;
+}
+
 static void sflash_sector_erase(unsigned long addr)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char buf[10];
 
 	sflash_write_enable(TRUE);
@@ -340,9 +420,9 @@ static void sflash_sector_erase(unsigned long addr)
 static void sflash_chip_erase(void)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char buf[10];
 
 	sflash_write_enable(TRUE);
@@ -367,9 +447,9 @@ static void sflash_chip_erase(void)
 static void sflash_reset_write_protection(void)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char buf[10];
 
 	buf[0] = _SERIAL_FLASH_CMD_EWSR;
@@ -398,9 +478,9 @@ static void sflash_reset_write_protection(void)
 static void sflash_write_enable(bool enable)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char buf[10];
 
 	if (enable == TRUE) {
@@ -424,9 +504,9 @@ static void sflash_write_enable(bool enable)
 static unsigned char sflash_read_status(void)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char status = 0;
 	unsigned char buf[10];
 	memset(&buf, 0xFF, 10);
@@ -452,9 +532,9 @@ static unsigned char sflash_read_status(void)
 static unsigned char sflash_read_id(void)
 {
 	int port = 0;
-	int freq = SFLAH_CLOCK;
+	int freq = SFLASH_CLOCK;
 	int bits = 8;
-	int conf = SFLAH_MODE;
+	int conf = SFLASH_MODE;
 	unsigned char manufacturer = 0;
 	unsigned short device_id = 0;
 	unsigned char buf[10];
@@ -558,37 +638,84 @@ void spi_test_main(int argc, char *argv[])
 	printf("\n");
 }
 
+#undef PAGE_TEST 
+#ifdef PAGE_TEST
+unsigned char test_buffer[SFLASH_PAGE_SIZE];
+unsigned char read_buffer[SFLASH_PAGE_SIZE];
+#endif
+
 void sflash_read_main(int argc, char *argv[])
 {
 	int port = 0;
-	unsigned char data;
 	unsigned long addr;
 	int i;
 
 	spi_dev = up_spiinitialize(port);
 
-	printf("Serial Flash Read (/dev/smart0p8) ...\n");
-	addr = 0x4D000;
+	addr = strtol(argv[2], NULL, 16);
 
-	data = sflash_read_byte(addr);
-	printf("\t - read data from [0x%08X] is [0x%02X]\n", addr, data);
-
-	data = sflash_read_byte(addr + 1);
-	printf("\t - read data from [0x%08X] is [0x%02X]\n", addr + 1, data);
-
-	data = sflash_read_byte(addr + 2);
-	printf("\t - read data from [0x%08X] is [0x%02X]\n", addr + 2, data);
-
-	data = sflash_read_byte(addr + 3);
-	printf("\t - read data from [0x%08X] is [0x%02X]\n", addr + 3, data);
-
-	data = sflash_read_byte(addr + 4);
-	printf("\t - read data from [0x%08X] is [0x%02X]\n", addr + 4, data);
-
-	printf("Serial Flash Read data by array ...\n");
-	addr = 0x4D000;
+#ifdef PAGE_TEST
+	int k;
+	sflash_sector_erase(addr);
 	sflash_read_array(addr, (unsigned char *)&read_array, _DATA_ARRAY_SIZE);
-	printf("Serial Flash read array data at [0x%08X] : \n\t", addr);
+	printf("Serial Flash read array data at [0x%08X] : ", addr);
+	for (i = 0; i < _DATA_ARRAY_SIZE; i++) {
+		printf(" %02X", read_array[i]);
+	}
+	printf("\n");
+
+	for (k=0; k<SFLASH_PAGE_SIZE; k++)
+	{
+		test_buffer[k] = k+1;
+		sflash_write_byte(addr+k, test_buffer[k]);
+	}
+        lib_dumpbuffer("sflash write ", test_buffer, SFLASH_PAGE_SIZE);
+//	sflash_write_page(addr, test_buffer);
+
+	sflash_read_array(addr, (unsigned char *)&read_array, _DATA_ARRAY_SIZE);
+	printf("Serial Flash read array data at [0x%08X] : ", addr);
+	for (i = 0; i < _DATA_ARRAY_SIZE; i++) {
+		printf(" %02X", read_array[i]);
+	}
+	printf("\n");
+
+//	sflash_read_page(addr, read_buffer);
+//        lib_dumpbuffer("sflash read", read_buffer, SFLASH_PAGE_SIZE);
+
+	for (k=0; k<SFLASH_PAGE_SIZE; k++)
+	{
+		read_buffer[k] = sflash_read_byte(addr + k);
+	}
+        lib_dumpbuffer("sflash read", read_buffer, SFLASH_PAGE_SIZE);
+#endif
+	printf("Serial Flash Read from addr 0x%08X ...\n",addr);
+
+	sflash_read_array(addr, (unsigned char *)&read_array, _DATA_ARRAY_SIZE);
+	printf("Serial Flash read array data at [0x%08X] : ", addr);
+	for (i = 0; i < _DATA_ARRAY_SIZE; i++) {
+		printf(" %02X", read_array[i]);
+	}
+	printf("\n");
+
+	addr += _DATA_ARRAY_SIZE;
+	sflash_read_array(addr, (unsigned char *)&read_array, _DATA_ARRAY_SIZE);
+	printf("Serial Flash read array data at [0x%08X] : ", addr);
+	for (i = 0; i < _DATA_ARRAY_SIZE; i++) {
+		printf(" %02X", read_array[i]);
+	}
+	printf("\n");
+
+	addr += _DATA_ARRAY_SIZE;
+	sflash_read_array(addr, (unsigned char *)&read_array, _DATA_ARRAY_SIZE);
+	printf("Serial Flash read array data at [0x%08X] : ", addr);
+	for (i = 0; i < _DATA_ARRAY_SIZE; i++) {
+		printf(" %02X", read_array[i]);
+	}
+	printf("\n");
+
+	addr += _DATA_ARRAY_SIZE;
+	sflash_read_array(addr, (unsigned char *)&read_array, _DATA_ARRAY_SIZE);
+	printf("Serial Flash read array data at [0x%08X] : ", addr);
 	for (i = 0; i < _DATA_ARRAY_SIZE; i++) {
 		printf(" %02X", read_array[i]);
 	}

@@ -41,7 +41,7 @@
 #include <arch/armv6/cacheops.h>
 
 #include "up_arch.h"
-#include "bcm2835_mmailbox.h"
+#include "bcm2835_mailbox.h"
 
 void select_mailbox(mailbox_s *priv, uint32_t channel)
 {

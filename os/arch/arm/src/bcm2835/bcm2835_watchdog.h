@@ -61,6 +61,10 @@
 /****************************************************************************
  *       Power Management, Reset controller and Watchdog registers
  ****************************************************************************/
+#ifndef REG
+#define REG(x) (*(volatile uint32_t *)(x))
+#endif
+
 #define PM_BASE                  (0x20100000)
 #define PM_RSTC                  REG(PM_BASE+0x1c)
 #define PM_WDOG                  REG(PM_BASE+0x24)

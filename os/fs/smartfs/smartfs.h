@@ -309,7 +309,11 @@ struct smartfs_entry_header_s {
 	int16_t firstsector;		/* Sector number of the name */
 	uint32_t utc;				/* Time stamp */
 	char name[0];				/* inode name */
+#ifdef CONFIG_ARCH_CHIP_BCM2836
+} STRUCT_PACKED;
+#else
 };
+#endif
 
 /* This structure describes the smartfs header at the start of each
  * sector.  It manages the sector chain and used bytes in the sector.

@@ -53,7 +53,7 @@
 
 MEMORY
 {
-	SRAM	(rwx)	: ORIGIN = 0x8000, LENGTH = 4161536
+	SRAM	(rwx)	: ORIGIN = 0x8000, LENGTH = 455233536
 }
 
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")

@@ -24,7 +24,8 @@
 #include <arch/board/memory.h>
 
 #include "up_arch.h"
-#include "bcm2835_propertytag.h"
+#include "bcm2835_mailbox.h"
+#include "bcm2835_propertytags.h"
 
 typedef struct property_buffer_s {
 	uint32_t buffer_size;		// bytes
@@ -49,11 +50,11 @@ void unselect_property_tags(bcm_property_tags_s *priv)
 	unselect_mailbox(&priv->mailbox);
 }
 
-int bcm_property_get_tags(bcm_property_tags_s *priv, uint32_t tag_id, void *pTag, unsigned tag_size, unsigned req_param_size)
+int bcm_property_get_tags(bcm_property_tags_s *priv, uint32_t tag_id, void *p_tag, unsigned tag_size, unsigned req_param_size)
 {
 	assert(priv != 0);
 
-	assert(pTag != 0);
+	assert(p_tag != 0);
 	assert(tag_size >= sizeof(simple_tag_s));
 	unsigned buffer_size = sizeof(property_buffer_s) + tag_size + sizeof(uint32_t);
 	assert((buffer_size & 3) == 0);
@@ -64,12 +65,12 @@ int bcm_property_get_tags(bcm_property_tags_s *priv, uint32_t tag_id, void *pTag
 
 	pBuffer->buffer_size = buffer_size;
 	pBuffer->code = CODE_REQUEST;
-	memcpy(pBuffer->Tags, pTag, tag_size);
+	memcpy(pBuffer->Tags, p_tag, tag_size);
 
-	property_tags_s *pHeader = (property_tags_s *) pBuffer->Tags;
-	pHeader->tag_id = tag_id;
-	pHeader->value_buffer_size = tag_size - sizeof(property_tags_s);
-	pHeader->value_length = req_param_size & ~VALUE_LENGTH_RESPONSE;
+	property_tags_s *p_header = (property_tags_s *) pBuffer->Tags;
+	p_header->tag_id = tag_id;
+	p_header->value_buffer_size = tag_size - sizeof(property_tags_s);
+	p_header->value_length = req_param_size & ~VALUE_LENGTH_RESPONSE;
 
 	uint32_t *pEndTag = (uint32_t *)(pBuffer->Tags + tag_size);
 	*pEndTag = PROPTAG_END;
@@ -77,8 +78,8 @@ int bcm_property_get_tags(bcm_property_tags_s *priv, uint32_t tag_id, void *pTag
 	CleanDataCache();
 	DataSyncBarrier();
 
-	uint32_t nBufferAddress = BUS_ADDRESS((uint32_t) pBuffer);
-	if (BcmMailBoxWriteRead(&priv->mailbox, nBufferAddress) != nBufferAddress) {
+	uint32_t buffer_address = BUS_ADDRESS((uint32_t) pBuffer);
+	if (mailbox_exchange(&priv->mailbox, buffer_address) != buffer_address) {
 		return FALSE;
 	}
 
@@ -89,16 +90,16 @@ int bcm_property_get_tags(bcm_property_tags_s *priv, uint32_t tag_id, void *pTag
 		return FALSE;
 	}
 
-	if (!(pHeader->value_length & VALUE_LENGTH_RESPONSE)) {
+	if (!(p_header->value_length & VALUE_LENGTH_RESPONSE)) {
 		return FALSE;
 	}
 
-	pHeader->value_length &= ~VALUE_LENGTH_RESPONSE;
-	if (pHeader->value_length == 0) {
+	p_header->value_length &= ~VALUE_LENGTH_RESPONSE;
+	if (p_header->value_length == 0) {
 		return FALSE;
 	}
 
-	memcpy(pTag, pBuffer->Tags, tag_size);
+	memcpy(p_tag, pBuffer->Tags, tag_size);
 
 	return TRUE;
 }

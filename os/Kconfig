@@ -464,6 +464,10 @@ menu "Audio Support"
 source audio/Kconfig
 endmenu
 
+menu "Media Support"
+source "$FRAMEWORK_DIR/src/media/Kconfig"
+endmenu
+
 menu "File Systems"
 source fs/Kconfig
 endmenu
@@ -514,3 +518,6 @@ menu "Things Management"
 source Kconfig.things
 endmenu
 
+menu "IoTBus Framework"
+source "$FRAMEWORK_DIR/src/iotbus/Kconfig"
+endmenu

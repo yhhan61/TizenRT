@@ -66,9 +66,14 @@
 
 #include <tinyara/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+#include "usbhost_bcm2835.h"
+#else
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -919,5 +924,5 @@ int usbhost_enumerate(FAR struct usbhost_driver_s *drvr, uint8_t funcaddr, FAR s
 #if defined(__cplusplus)
 }
 #endif
-
+#endif							/* CONFIG_ARCH_CHIP_BCM2835 */
 #endif							/* __INCLUDE_TINYARA_USB_USBHOST_H */

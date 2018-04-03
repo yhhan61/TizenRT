@@ -88,9 +88,9 @@ static void mmu_initialize(mmu_table_s *priv, int enableMMU)
 {
 	assert(priv != 0);
 
-	lldbg("Setup MMU & Enable Cache\n");
-	lldbg(" - Page Table 1\t : 0x%08X\n", BCM2835_PAGE_TABLE1);
-	lldbg(" - Page Table 2\t : 0x%08X\n", BCM2835_PAGE_TABLE2);
+	lowsyslog(LOG_INFO, "\nSetup MMU & Enable Cache\n");
+	lowsyslog(LOG_INFO, " - Page Table 1\t : 0x%08X\n", BCM2835_PAGE_TABLE1);
+	lowsyslog(LOG_INFO, " - Page Table 2\t : 0x%08X\n", BCM2835_PAGE_TABLE2);
 	priv->m_enableMMU = enableMMU;
 
 	priv->level1_default_table = (pagetable_s *)&ttbr0_table;

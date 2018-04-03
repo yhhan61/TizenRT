@@ -18,6 +18,13 @@ config 16550_UART
 	bool "16550 UART Chip support"
 	default n
 
+config CP210X_UART
+	bool "CP210X USBtoSerial Bridge support"
+	default n
+#	select SERIAL_OFLOWCONTROL
+	---help---
+		Silicon Labs, CP210X USB to Serial bridge support
+
 if 16550_UART
 config 16550_UART0
 	bool "16550 UART0"

@@ -24,6 +24,10 @@ ifeq ($(CONFIG_DRIVER_T20), y)
 CSRCS += driver_t20.c
 endif
 
+ifeq ($(CONFIG_BRCM_WLAN), y)
+CSRCS += driver_cyw43438.c
+endif
+
 DEPPATH += --dep-path src/drivers
 VPATH += :src/drivers
 

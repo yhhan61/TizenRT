@@ -49,6 +49,9 @@ extern struct wpa_driver_ops wpa_driver_none_ops;	/* driver_none.c */
 #ifdef CONFIG_DRIVER_T20
 extern struct wpa_driver_ops wpa_driver_t20_ops;	/* t20_ops.c */
 #endif							/* CONFIG_DRIVER_NONE */
+#ifdef CONFIG_BRCM_WLAN
+extern struct wpa_driver_ops wpa_driver_cyw4348_ops; /* cyw43438_ops.c */
+#endif							/* CONFIG_BRCM_WLAN */
 
 const struct wpa_driver_ops *const wpa_drivers[] = {
 #ifdef CONFIG_DRIVER_T20
@@ -87,5 +90,8 @@ const struct wpa_driver_ops *const wpa_drivers[] = {
 #ifdef CONFIG_DRIVER_NONE
 	&wpa_driver_none_ops,
 #endif							/* CONFIG_DRIVER_NONE */
+#ifdef CONFIG_BRCM_WLAN
+	&wpa_driver_cyw4348_ops,
+#endif                          /* CONFIG_BRCM_WLAN */
 	NULL
 };

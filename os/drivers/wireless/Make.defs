@@ -35,13 +35,29 @@
 
 ifeq ($(CONFIG_DRIVERS_WIRELESS),y)
 
-ifeq ($(CONFIG_SCSC_WLAN),y)
-include wireless$(DELIM)scsc$(DELIM)Make.defs
-endif
+ ifeq ($(CONFIG_ARCH_CHIP_BCM2835),y)
 
-ifeq ($(CONFIG_SCSC_CORE),y)
+	ifeq ($(CONFIG_BRCM_WLAN),y)
+include wireless$(DELIM)broadcom$(DELIM)rpi0w$(DELIM)Make.defs
+include wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal$(DELIM)Make.defs
+include wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal$(DELIM)bus_protocols$(DELIM)Make.defs
+include wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal$(DELIM)bus_protocols$(DELIM)SDIO$(DELIM)Make.defs
+include wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal$(DELIM)chips$(DELIM)4343x$(DELIM)Make.defs
+	endif
+
+ endif
+
+ ifneq ($(CONFIG_ARCH_CHIP_BCM2835),y)
+
+	ifeq ($(CONFIG_SCSC_WLAN),y)
+include wireless$(DELIM)scsc$(DELIM)Make.defs
+	endif
+
+	ifeq ($(CONFIG_SCSC_CORE),y)
 include wireless$(DELIM)scsc$(DELIM)misc$(DELIM)Make.defs
-endif
+	endif
+
+ endif
 
 # Include wireless devices build support
 

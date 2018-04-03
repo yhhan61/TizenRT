@@ -18,6 +18,7 @@
 #include <tinyara/config.h>
 
 #include <stdio.h>
+#include <pthread.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <debug.h>
@@ -32,131 +33,50 @@
 #include "up_arch.h"
 #include "rp0w.h"
 
-struct netif *wlan_netif;
-
-/**
- * Should be called at the beginning of the program to set up the
- * network interface. It calls the function low_level_init() to do the
- * actual setup of the hardware.
- *
- * This function should be passed as a parameter to netif_add().
- *
- * @param netif the lwip network interface structure for this ethernetif
- * @return ERR_OK if the loopif is initialized
- *         ERR_MEM if private data couldn't be allocated
- *         any other err_t on error
- */
-static err_t wlan_init(struct netif *netif)
+int up_wlan_get_country(char *alpha2)
 {
-	netif->name[0] = 'w';
-	netif->name[1] = 'l';
-
-	snprintf(netif->d_ifname, IFNAMSIZ, "wl%d", netif->num);
-	netif->flags = NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_BROADCAST | NETIF_FLAG_IGMP;
-
-	return ERR_OK;
+	return cyw43438_get_country(NULL, alpha2);
 }
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-unsigned int up_wlan_write_config(void *buf, unsigned int bufsize)
+int up_wlan_set_country(char *alpha2)
 {
-#if defined(CONFIG_MTD_CONFIG)
-	int fd;
-	struct config_data_s config;
+	return cyw43438_set_country(NULL, alpha2);
+}
 
-	fd = open("/dev/config", O_RDOK);
-	if (fd < 0) {
-		lldbg("Failed to open /dev/config\n");
-		return false;
+int up_wlan_get_txpower(void)
+{
+	return (int)cyw43438_get_tx_power(NULL);
+}
+
+int up_wlan_set_txpower(uint8_t *dbm)
+{
+	return cyw43438_set_tx_power(NULL, *dbm);
+}
+
+int bring_up_wpa_supplicant(void)
+{
+extern	int wpa_supplicant_main(int argc, char *argv[]);
+	pid_t task;
+	static char *argv[5];
+
+	argv[0] = "-B";
+	argv[1] = "-t";
+	argv[2] = "-i wl1";
+	argv[3] = "-Cudp";
+	argv[4] = NULL;
+
+	task = task_create("WPA Supplicant",
+						100,
+						4096,
+						wpa_supplicant_main,
+						argv);
+
+	sleep(1);
+
+	if (task < 0) {
+		printf("ERROR: Failed wpa_supplicant_task\n");
+		return -1;;
 	}
 
-	config.id = RP0W_CONFIGDATA_WIFI_NVRAM;
-	config.instance = 0;
-	config.configdata = (unsigned char *)buf;
-	config.len = bufsize;
-
-	ioctl(fd, CFGDIOC_SETCONFIG, &config);
-	close(fd);
-
-	return true;
-#elif CONFIG_ARCH_CHIP_BCM2835
-	return true;
-#else
-	return false;
-#endif
-}
-
-unsigned int up_wlan_read_config(void *buf, unsigned int bufsize)
-{
-#if defined(CONFIG_MTD_CONFIG)
-	int fd;
-	struct config_data_s config;
-
-	fd = open("/dev/config", O_RDOK);
-	if (fd < 0) {
-		lldbg("Failed to open /dev/config\n");
-		return false;
-	}
-
-	config.id = RP0W_CONFIGDATA_WIFI_NVRAM;
-	config.instance = 0;
-	config.configdata = (unsigned char *)buf;
-	config.len = bufsize;
-
-	ioctl(fd, CFGDIOC_GETCONFIG, &config);
-	close(fd);
-
-	return true;
-#elif CONFIG_ARCH_CHIP_BCM2835
-	/*
-	   strcpy(&buf[0], "SLSI");
-	   buf[4] = 0;
-	   buf[5] = 'K';
-	   buf[6] = 'O';
-	   buf[7] = 0;
-	   buf[8] = 30;
-	 */
-	return true;
-#else
-	return false;
-#endif
-}
-
-unsigned int up_wlan_erase_config(void)
-{
-#if defined(CONFIG_MTD_CONFIG)
-	return true;
-#elif CONFIG_ARCH_CHIP_BCM2835
-	return true;
-#else
-	return false;
-#endif
-}
-
-int up_wlan_get_mac_addr(char *macaddr)
-{
-	return brcmf_get_mac_address(macaddr);
-}
-
-void *up_wlan_get_firmware(void)
-{
-	return (void *)0x04048000;
-}
-
-void up_wlan_init(struct netif *dev)
-{
-	struct ip_addr ipaddr;
-	struct ip_addr netmask;
-	struct ip_addr gw;
-
-	/* Start LWIP network thread */
-	ipaddr.addr = inet_addr("0.0.0.0");
-	netmask.addr = inet_addr("255.255.255.255");
-	gw.addr = inet_addr("0.0.0.0");
-
-	netif_set_default(dev);
-
-	wlan_netif = netif_add(dev, &ipaddr, &netmask, &gw, NULL, wlan_init, tcpip_input);
+	return 0;
 }

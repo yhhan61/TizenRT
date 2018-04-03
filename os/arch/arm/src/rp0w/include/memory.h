@@ -162,6 +162,13 @@
 //
 // PWM
 //
+#ifndef REG
+#define REG(x) (*(volatile uint32_t *)(x))
+#endif
+#ifndef BIT
+#define BIT(n) (1 << (n))
+#endif
+
 #define	BCM2835_PWM_BASE	0x2020C000
 
 #define PWM_CTL			REG(0x2020C000)
@@ -197,5 +204,14 @@
 #define ARM_SYSTIMER_C1         (ARM_SYSTIMER_BASE + 0x10)
 #define ARM_SYSTIMER_C2         (ARM_SYSTIMER_BASE + 0x14)
 #define ARM_SYSTIMER_C3         (ARM_SYSTIMER_BASE + 0x18)
+
+//
+// USB Host Controller
+//
+#define BCM2835_USB_BASE	(ARM_IO_BASE + 0x980000)
+
+#define BCM2835_USB_CORE_BASE	BCM2835_USB_BASE
+#define BCM2835_USB_HOST_BASE	(BCM2835_USB_BASE + 0x400)
+#define BCM2835_USB_POWER	(BCM2835_USB_BASE + 0xE00)
 
 #endif							/* __ARCH_ARM_SRC_RP0W_MEMORY_H */

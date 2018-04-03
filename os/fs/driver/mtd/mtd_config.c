@@ -463,8 +463,9 @@ read_next:
 				bytes_left_in_block = (block + 1) * dev->erasesize - offset;
 				if (size > 0 && bytes_left_in_block >= size + sizeof(*phdr)) {
 					/* Free entry of large enough size found */
-
+#ifdef CONFIG_ARCH_CHIP_BCM2835
 					found = true;
+#endif					
 					break;
 				}
 

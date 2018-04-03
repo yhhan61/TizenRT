@@ -41,16 +41,29 @@ int rp0_demo_main(int argc, FAR char *argv[])
 
 	switch (argc) {
 	case 2:
-		if (strcmp(argv[1], "gpio") == 0) {
+		if(0) {
+#ifdef CONFIG_IOTBUS_GPIO
+		} else if (strcmp(argv[1], "gpio") == 0) {
 			gpio_test_main(argc, argv);
+#endif			
+#ifdef CONFIG_IOTBUS_I2C
 		} else if (strcmp(argv[1], "gy30") == 0) {
 			gy30_main(argc, argv);
+#endif
+#ifdef CONFIG_IOTBUS_SPI
 		} else if (strcmp(argv[1], "spi") == 0) {
 			spi_test_main(argc, argv);
 		} else if (strcmp(argv[1], "sflash") == 0) {
+			argv[2] = 0;
 			sflash_read_main(argc, argv);
+#endif
 		} else {
 			show_usage(argv[0]);
+		}
+		break;
+	case 3:
+		if (strcmp(argv[1], "sflash") == 0) {
+			sflash_read_main(argc, argv);
 		}
 		break;
 

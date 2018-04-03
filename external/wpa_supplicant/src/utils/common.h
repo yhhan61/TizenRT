@@ -11,7 +11,7 @@
 
 #include "os.h"
 
-#ifndef CONFIG_ARCH_CHIP_S5JT200
+#if !defined CONFIG_ARCH_CHIP_S5JT200 && !defined CONFIG_ARCH_CHIP_BCM2835
 #if defined(__linux__) || defined(__GLIBC__)
 #include <endian.h>
 #include <byteswap.h>
@@ -170,7 +170,7 @@ static inline unsigned int wpa_swap_32(unsigned int v)
 
 #endif							/* __CYGWIN__ || CONFIG_NATIVE_WINDOWS */
 
-#ifndef CONFIG_ARCH_CHIP_S5JT200
+#if !defined CONFIG_ARCH_CHIP_S5JT200 && !defined CONFIG_ARCH_CHIP_BCM2835
 #ifndef WPA_BYTE_SWAP_DEFINED
 
 #ifndef __BYTE_ORDER
@@ -180,6 +180,8 @@ static inline unsigned int wpa_swap_32(unsigned int v)
 #define __BIG_ENDIAN 4321
 #if defined(sparc)
 #define __BYTE_ORDER __BIG_ENDIAN
+#else
+#define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 #endif							/* __BIG_ENDIAN */
 #endif							/* __LITTLE_ENDIAN */

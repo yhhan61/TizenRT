@@ -662,6 +662,7 @@ struct wpa_driver_associate_params {
 	 */
 	int wep_tx_keyidx;
 
+#ifndef CONFIG_BRCM_WLAN
 	/**
 	 * mgmt_frame_protection - IEEE 802.11w management frame protection
 	 */
@@ -703,6 +704,7 @@ struct wpa_driver_associate_params {
 	 * mobility domain is currently active.
 	 */
 	const u8 *ft_md;
+#endif
 
 	/**
 	 * passphrase - RSN passphrase for PSK

@@ -78,6 +78,12 @@
 #include <tinyara/usb/cdcacm.h>
 #include <tinyara/usb/usbhost_devaddr.h>
 
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+#define usbhost_cdcacm_dbg     uvdbg
+#else
+#define usbhost_cdcacm_dbg(x...)
+#endif
+
 #ifdef CONFIG_USBHOST_CDCACM
 
 /****************************************************************************
@@ -872,6 +878,7 @@ static void usbhost_txdata_work(FAR void *arg)
 	int txtail;
 	int ret;
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : beginning of usbhost_txdata_work\n",__LINE__);
 	priv = (FAR struct usbhost_cdcacm_s *)arg;
 	DEBUGASSERT(priv);
 
@@ -898,6 +905,7 @@ static void usbhost_txdata_work(FAR void *arg)
 		/* Copy data from the UART TX buffer until either 1) the UART TX
 		 * buffer has been emptied, or 2) the Bulk OUT buffer is full.
 		 */
+		usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 
 		txndx = 0;
 		while (txtail != txbuf->head && txndx < priv->pktsize) {
@@ -925,6 +933,7 @@ static void usbhost_txdata_work(FAR void *arg)
 
 		/* Send the filled TX buffer to the CDC/ACM device */
 
+		usbhost_cdcacm_dbg("*HBAHN[%d] : priv->blkout(%d)\n",__LINE__, priv->bulkout);
 		nwritten = DRVR_TRANSFER(hport->drvr, priv->bulkout, priv->outbuf, txndx);
 		if (nwritten < 0) {
 			/* The most likely reason for a failure is that CDC/ACM device
@@ -1000,6 +1009,7 @@ static void usbhost_rxdata_work(FAR void *arg)
 	int rxndx;
 	int ret;
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : beginning of usbhost_rxdata_work\n",__LINE__);
 	priv = (FAR struct usbhost_cdcacm_s *)arg;
 	DEBUGASSERT(priv);
 
@@ -1052,6 +1062,7 @@ static void usbhost_rxdata_work(FAR void *arg)
 		if (priv->nrxbytes < 1) {
 			/* No.. Read more data from the CDC/ACM device */
 
+			usbhost_cdcacm_dbg("*HBAHN[%d] : start DRVR_TRANSFER\n",__LINE__);
 			nread = DRVR_TRANSFER(hport->drvr, priv->bulkin, priv->inbuf, priv->pktsize);
 			if (nread < 0) {
 				/* The most likely reason for a failure is that the has no
@@ -1065,6 +1076,7 @@ static void usbhost_rxdata_work(FAR void *arg)
 				udbg("ERROR: DRVR_TRANSFER for packet failed: %d\n", (int)nread);
 				break;
 			}
+			usbhost_cdcacm_dbg("*HBAHN[%d] : finished DRVR_TRANSFER\n",__LINE__);
 
 			/* Save the number of bytes read.  This might be zero if
 			 * a Zero Length Packet (ZLP) is received.  The ZLP is
@@ -1087,6 +1099,7 @@ static void usbhost_rxdata_work(FAR void *arg)
 
 		rxbuf->buffer[rxbuf->head] = priv->inbuf[rxndx];
 		nxfrd++;
+		usbhost_cdcacm_dbg("*HBAHN[%d] : nxfrd(%d) => (%c)\n",__LINE__, nxfrd, rxbuf->buffer[rxbuf->head]);
 
 		/* Save the updated indices */
 
@@ -1117,11 +1130,13 @@ static void usbhost_rxdata_work(FAR void *arg)
 
 			/* Inform any waiters there there is new incoming data available. */
 
+			usbhost_cdcacm_dbg("*HBAHN[%d] : call uart_datareceived\n",__LINE__);
 			uart_datareceived(uartdev);
 			nxfrd = 0;
 		}
 	}
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 	/* We break out to here:  1) the UART RX buffer is full, 2) the CDC/ACM
 	 * device is not ready to provide us with more serial data, or 3) the
 	 * device has been disconnected.
@@ -1143,6 +1158,7 @@ static void usbhost_rxdata_work(FAR void *arg)
 		 * layer demands more data.
 		 */
 
+		usbhost_cdcacm_dbg("*HBAHN[%d] : queue usbhost_rxdata_work\n",__LINE__);
 		ret = work_queue(LPWORK, &priv->rxwork, usbhost_rxdata_work, priv, USBHOST_CDCACM_RXDELAY);
 		DEBUGASSERT(ret >= 0);
 		UNUSED(ret);
@@ -1151,8 +1167,10 @@ static void usbhost_rxdata_work(FAR void *arg)
 	/* If any bytes were added to the buffer, inform any waiters there there
 	 * is new incoming data available.
 	 */
+	usbhost_cdcacm_dbg("*HBAHN[%d] : nxfrd(%d)\n",__LINE__, nxfrd);
 
 	if (nxfrd) {
+		usbhost_cdcacm_dbg("*HBAHN[%d] : nxfrd(%d)\n",__LINE__, nxfrd);
 		uart_datareceived(uartdev);
 	}
 }
@@ -1187,7 +1205,9 @@ static void usbhost_destroy(FAR void *arg)
 	/* Unregister the serial lower half driver */
 
 	usbhost_mkdevname(priv, devname);
+#ifndef CONFIG_ARCH_CHIP_BCM2835
 #warning Missing logic
+#endif
 
 	/* Release the device name used by this connection */
 
@@ -1300,6 +1320,7 @@ static int usbhost_cfgdesc(FAR struct usbhost_cdcacm_s *priv, FAR const uint8_t 
 		/* What is the next descriptor? */
 
 		desc = (FAR struct usb_desc_s *)configdesc;
+		usbhost_cdcacm_dbg("*HBAHN[%d]: desc->type(%x)\n",__LINE__, desc->type);
 		switch (desc->type) {
 		/* Interface descriptor. The CDC/ACM device may include two
 		 * interfaces:
@@ -1313,6 +1334,7 @@ static int usbhost_cfgdesc(FAR struct usbhost_cdcacm_s *priv, FAR const uint8_t 
 		case USB_DESC_TYPE_INTERFACE: {
 			FAR struct usb_ifdesc_s *ifdesc = (FAR struct usb_ifdesc_s *)configdesc;
 
+			usbhost_cdcacm_dbg("*HBAHN[%d]: USB_DESC_TYPE_INTERFACE\n",__LINE__);
 			uvdbg("Interface descriptor: class: %d subclass: %d proto: %d\n", ifdesc->classid, ifdesc->subclass, ifdesc->protocol);
 			DEBUGASSERT(remaining >= USB_SIZEOF_IFDESC);
 
@@ -1337,6 +1359,17 @@ static int usbhost_cfgdesc(FAR struct usbhost_cdcacm_s *priv, FAR const uint8_t 
 				currif = USBHOST_CTRLIF_FOUND;
 			}
 #endif
+#ifdef CONFIG_CP210X_UART
+			else if (ifdesc->classid == USB_CLASS_VENDOR_SPEC && (found & USBHOST_CTRLIF_FOUND) == 0) {
+				/* USB_CLASS_VENDOR_SPEC, assume that this is the control & data interface.
+				 */
+				usbhost_cdcacm_dbg("*HBAHN[%d]: USB_CLASS_VENDOR_SPEC\n",__LINE__);
+
+				priv->ctrlif = ifdesc->ifno;
+				found |= USBHOST_DATAIF_FOUND;
+				currif = USBHOST_DATAIF_FOUND;
+			}
+#endif /* CONFIG_CP210X_UART */
 			else {
 				/* Its something else */
 
@@ -1352,11 +1385,13 @@ static int usbhost_cfgdesc(FAR struct usbhost_cdcacm_s *priv, FAR const uint8_t 
 		case USB_DESC_TYPE_ENDPOINT: {
 			FAR struct usb_epdesc_s *epdesc = (FAR struct usb_epdesc_s *)configdesc;
 
+			usbhost_cdcacm_dbg("*HBAHN[%d]: USB_DESC_TYPE_ENDPOINT\n",__LINE__);
 			uvdbg("Endpoint descriptor: currif: %02x attr: %02x\n", currif, epdesc->attr);
 			DEBUGASSERT(remaining >= USB_SIZEOF_EPDESC);
 
 			/* Check for a bulk endpoint. */
 
+			usbhost_cdcacm_dbg("*HBAHN[%d]: currif(%x,%x), epdesc->attr(%x, %x)\n",__LINE__,currif,USBHOST_DATAIF_FOUND,epdesc->attr,USB_EP_ATTR_XFER_BULK);
 			if (currif == USBHOST_DATAIF_FOUND && (epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) == USB_EP_ATTR_XFER_BULK) {
 				/* Yes.. it is a bulk endpoint.  IN or OUT? */
 
@@ -1416,12 +1451,15 @@ static int usbhost_cfgdesc(FAR struct usbhost_cdcacm_s *priv, FAR const uint8_t 
 
 			else if (currif == USBHOST_CTRLIF_FOUND && (epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) == USB_EP_ATTR_XFER_INT) {
 				/* Yes.. it is a interrupt endpoint.  IN or OUT? */
+				usbhost_cdcacm_dbg("*HBAHN[%d]: USBHOST_CTRLIF_FOUND\n",__LINE__);
 
 				if (USB_ISEPIN(epdesc->addr)) {
+					usbhost_cdcacm_dbg("*HBAHN[%d]: USB_ISEPIN\n",__LINE__);
 #ifdef HAVE_INTIN_ENDPOINT
 					/* It is an IN interrupt endpoint.  There should be only one
 					 * interrupt IN endpoint.
 					 */
+					usbhost_cdcacm_dbg("*HBAHN[%d]: HAVE_INTIN_ENDPOINT\n",__LINE__);
 
 					if ((found & USBHOST_INTIN_FOUND) != 0) {
 						/* Oops.. more than one.  We don't know what to do
@@ -1482,6 +1520,8 @@ static int usbhost_cfgdesc(FAR struct usbhost_cdcacm_s *priv, FAR const uint8_t 
 	 */
 
 	if ((found & USBHOST_MINFOUND) != USBHOST_MINFOUND) {
+		usbhost_cdcacm_dbg("*HBAHN[%d]: ERROR(%x,%x)\n",__LINE__,found,USBHOST_MINFOUND);
+		usbhost_cdcacm_dbg("ERROR: Found DATA IF:%s BULK IN:%s BULK OUT:%s\n", (found & USBHOST_DATAIF_FOUND) != 0 ? "YES" : "NO", (found & USBHOST_BULKIN_FOUND) != 0 ? "YES" : "NO", (found & USBHOST_BULKOUT_FOUND) != 0 ? "YES" : "NO");
 		udbg("ERROR: Found DATA IF:%s BULK IN:%s BULK OUT:%s\n", (found & USBHOST_DATAIF_FOUND) != 0 ? "YES" : "NO", (found & USBHOST_BULKIN_FOUND) != 0 ? "YES" : "NO", (found & USBHOST_BULKOUT_FOUND) != 0 ? "YES" : "NO");
 		return -EINVAL;
 	}
@@ -2015,7 +2055,7 @@ static int usbhost_disconnected(struct usbhost_class_s *usbclass)
 	/* Cancel any pending asynchronous I/O */
 
 	if (priv->intin) {
-		int ret = DRVR_CANCEL(hport->drvr, priv->intin);
+		ret = DRVR_CANCEL(hport->drvr, priv->intin);
 		if (ret < 0) {
 			udbg("ERROR: Interrupt IN DRVR_CANCEL failed: %d\n", ret);
 		}
@@ -2203,15 +2243,23 @@ static void usbhost_detach(FAR struct uart_dev_s *uartdev)
 static int usbhost_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
 	struct inode *inode;
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+	struct uart_dev_s *uartdev;
+#endif
 	struct usbhost_cdcacm_s *priv;
-	int ret;
+	int ret = 0;
 
 	uvdbg("Entry\n");
 	DEBUGASSERT(filep && filep->f_inode);
 	inode = filep->f_inode;
 
 	DEBUGASSERT(inode && inode->i_private);
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+	uartdev=inode->i_private;
+	priv = (FAR struct usbhost_cdcacm_s *)uartdev->priv;
+#else	
 	priv = (FAR struct usbhost_cdcacm_s *)inode->i_private;
+#endif
 
 	/* Check if the CDC/ACM device is still connected */
 
@@ -2258,7 +2306,11 @@ static int usbhost_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #endif
 								;
 
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+			switch (priv->nbits) {
+#else
 			switch (priv->bits) {
+#endif
 			case 5:
 				termiosp->c_cflag |= CS5;
 				break;
@@ -2296,7 +2348,11 @@ static int usbhost_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 				priv->parity = 0;
 			}
 
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+			priv->stop2 = (termiosp->c_cflag & CSTOPB) != 0;
+#else
 			priv->stopbits2 = (termiosp->c_cflag & CSTOPB) != 0;
+#endif			
 #ifdef CONFIG_SERIAL_OFLOWCONTROL
 			priv->oflow = (termiosp->c_cflag & CCTS_OFLOW) != 0;
 #endif
@@ -2305,6 +2361,26 @@ static int usbhost_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 			priv->iflow = (termiosp->c_cflag & CRTS_IFLOW) != 0;
 #endif
 
+#ifdef CONFIG_ARCH_CHIP_BCM2835
+			switch (termiosp->c_cflag & CSIZE) {
+			case CS5:
+				priv->nbits = 5;
+				break;
+
+			case CS6:
+				priv->nbits = 6;
+				break;
+
+			case CS7:
+				priv->nbits = 7;
+				break;
+
+			default:
+			case CS8:
+				priv->nbits = 8;
+				break;
+			}
+#else
 			switch (termiosp->c_flag & CSIZE) {
 			case C5:
 				priv->bits = 5;
@@ -2323,7 +2399,7 @@ static int usbhost_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 				priv->bits = 8;
 				break;
 			}
-
+#endif
 			/* Note that only cfgetispeed is used because we have knowledge
 			 * that only one speed is supported.
 			 */
@@ -2385,6 +2461,7 @@ static void usbhost_rxint(FAR struct uart_dev_s *uartdev, bool enable)
 	FAR struct usbhost_cdcacm_s *priv;
 	int ret;
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 	DEBUGASSERT(uartdev && uartdev->priv);
 	priv = (FAR struct usbhost_cdcacm_s *)uartdev->priv;
 
@@ -2403,6 +2480,7 @@ static void usbhost_rxint(FAR struct uart_dev_s *uartdev, bool enable)
 		if (priv->rts)
 #endif
 		{
+			usbhost_cdcacm_dbg("*HBAHN[%d] : queue usbhost_rxdata_work\n",__LINE__);
 			ret = work_queue(LPWORK, &priv->rxwork, usbhost_rxdata_work, priv, 0);
 			DEBUGASSERT(ret >= 0);
 			UNUSED(ret);
@@ -2428,9 +2506,9 @@ static void usbhost_rxint(FAR struct uart_dev_s *uartdev, bool enable)
 
 static bool usbhost_rxavailable(FAR struct uart_dev_s *uartdev)
 {
-
 	FAR struct usbhost_cdcacm_s *priv;
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 	DEBUGASSERT(uartdev && uartdev->priv);
 	priv = (FAR struct usbhost_cdcacm_s *)uartdev->priv;
 	return (priv->nrxbytes > 0);
@@ -2466,6 +2544,7 @@ static bool usbhost_rxflowcontrol(FAR struct uart_dev_s *uartdev, unsigned int n
 	bool newrts;
 	int ret;
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 	DEBUGASSERT(uartdev && uartdev->priv);
 	priv = (FAR struct usbhost_cdcacm_s *)uartdev->priv
 		   /* Is RX flow control enabled? */
@@ -2503,6 +2582,7 @@ static bool usbhost_rxflowcontrol(FAR struct uart_dev_s *uartdev, unsigned int n
 		 */
 
 		if (priv->rxena && work_available(&priv->rxwork)) {
+			usbhost_cdcacm_dbg("*HBAHN[%d] : queue usbhost_rxdata_work\n",__LINE__);
 			ret = work_queue(LPWORK, &priv->rxwork, usbhost_rxdata_work, priv, 0);
 			DEBUGASSERT(ret >= 0);
 			UNUSED(ret);
@@ -2526,6 +2606,7 @@ static void usbhost_txint(FAR struct uart_dev_s *uartdev, bool enable)
 	FAR struct usbhost_cdcacm_s *priv;
 	int ret;
 
+	usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 	DEBUGASSERT(uartdev && uartdev->priv);
 	priv = (FAR struct usbhost_cdcacm_s *)uartdev->priv;
 
@@ -2536,6 +2617,7 @@ static void usbhost_txint(FAR struct uart_dev_s *uartdev, bool enable)
 
 		(void)work_cancel(LPWORK, &priv->txwork);
 
+		usbhost_cdcacm_dbg("*HBAHN[%d] : call usbhost_txdata_work\n",__LINE__);
 		/* Restart immediate TX data transmission work */
 
 		ret = work_queue(LPWORK, &priv->txwork, usbhost_txdata_work, priv, 0);
@@ -2544,6 +2626,7 @@ static void usbhost_txint(FAR struct uart_dev_s *uartdev, bool enable)
 	} else if (!enable && priv->txena) {
 		/* Cancel any pending TX data transmission work */
 
+		usbhost_cdcacm_dbg("*HBAHN[%d] : \n",__LINE__);
 		(void)work_cancel(LPWORK, &priv->txwork);
 	}
 

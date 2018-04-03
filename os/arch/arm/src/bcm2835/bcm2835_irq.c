@@ -98,6 +98,7 @@ volatile uint32_t *current_regs;
  ****************************************************************************/
 void up_irqinitialize(void)
 {
+	char dummy;
 	gpio_irqinitialize();
 
 	/* Clear pending bit */
@@ -114,6 +115,7 @@ void up_irqinitialize(void)
 
 	/* disable unknown interrupt */
 	ARM_TIMER_CLI = 0;
+	dummy = AUX_MU_IO_REG; /* read unknown data on FIFO */
 	AUX_MU_IER_REG = 0; /* disable UART interrupt */
 
 	(void)irqenable();
@@ -168,8 +170,9 @@ static int up_check_irq(int irq)
 	return 0;
 }
 
+#ifdef CONFIG_DEBUG_IRQ_COUNT
 int irq_count[NR_IRQS] = { 0, };
-
+#endif
 uint32_t *arm_decodeirq(uint32_t *regs)
 {
 	register unsigned long ulMaskedStatus = pRegs->IRQBasic;
@@ -202,7 +205,9 @@ uint32_t *arm_decodeirq(uint32_t *regs)
 
 		/* Call interrupt handler, if enabled */
 		if ((unsigned)irq < NR_IRQS && up_check_irq(irq) != 0) {
+#ifdef CONFIG_DEBUG_IRQ_COUNT
 			++irq_count[irq];
+#endif
 #ifdef CONFIG_BCM2835_MULTIPLE_GPIO_USE_ONE_IRQ
 			if (irq >= 49 && irq <= 52) {
 				if (check_gpio_irq_edge(irq)) {

@@ -1,0 +1,12 @@
+#
+# For a description of the syntax of this configuration file,
+# see kconfig-language at https://www.kernel.org/doc/Documentation/kbuild/kconfig-language.txt
+#
+config NETUTILS_WIFI
+	bool "BRCM Wi-Fi API"
+	default n
+	select BRCM_WLAN
+	select WPA_SUPPLICANT
+	---help---
+		Enable support for the BRCM WI-Fi Networking API.
+

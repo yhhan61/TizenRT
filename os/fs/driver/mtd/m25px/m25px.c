@@ -99,6 +99,11 @@
 #error  "Memory Type not defined no selected for the flash device"
 #endif
 
+#ifdef CONFIG_BCM2835_SFLASH
+#define BCM2835_HEAD	4		/* BCM2835 require addition 4 */
+#endif					/* CONFIG_BCM2835_SFLASH */
+
+
 /* M25P Registers *******************************************************************/
 /* Indentification register values */
 
@@ -265,6 +270,10 @@ static inline void m25p_pagewrite(struct m25p_dev_s *priv, FAR const uint8_t *bu
 
 /* MTD driver methods */
 
+#ifdef CONFIG_BCM2835_SFLASH
+static inline void m25p_onebytewrite(struct m25p_dev_s *priv, FAR const uint8_t buffer, off_t offset);
+static uint8_t m25p_onebyteread(FAR struct m25p_dev_s *priv, off_t offset);
+#endif
 static int m25p_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks);
 static ssize_t m25p_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks, FAR uint8_t *buf);
 static ssize_t m25p_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks, FAR const uint8_t *buf);
@@ -281,6 +290,54 @@ static int m25p_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
+
+#ifdef CONFIG_BCM2835_SFLASH
+/* this is for debuuging purpose */
+void mtd_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer, unsigned int buflen)
+{
+	unsigned int i;
+	unsigned int j;
+	unsigned int k;
+
+//	if (buflen > 100) buflen = 100;
+	lowsyslog(LOG_INFO, "%s (%p):\n", msg, buffer);
+	for (i = 0; i < buflen; i += 32) {
+		lowsyslog(LOG_INFO, "%04x: ", i);
+		for (j = 0; j < 32; j++) {
+			k = i + j;
+
+			if (j == 16) {
+				lowsyslog(LOG_INFO, " ");
+			}
+
+			if (k < buflen) {
+				lowsyslog(LOG_INFO, " %02x", buffer[k]);
+			} else {
+				lowsyslog(LOG_INFO, "  ");
+			}
+		}
+
+		lowsyslog(LOG_INFO, " ");
+		for (j = 0; j < 32; j++) {
+			k = i + j;
+
+			if (j == 16) {
+				lowsyslog(LOG_INFO, " ");
+			}
+
+			if (k < buflen) {
+				if (buffer[k] >= 0x20 && buffer[k] < 0x7f) {
+					lowsyslog(LOG_INFO, "%c", buffer[k]);
+				} else {
+					lowsyslog(LOG_INFO, ".");
+				}
+			}
+		}
+
+		lowsyslog(LOG_INFO, "\n");
+	}
+}
+#endif					/* CONFIG_BCM2835_SFLASH */
 
 /************************************************************************************
  * Name: m25p_lock
@@ -309,7 +366,11 @@ static void m25p_lock(FAR struct spi_dev_s *dev)
 #ifdef CONFIG_SPI_HWFEATURES
 	(void)SPI_HWFEATURES(dev, 0);
 #endif
+#ifdef CONFIG_BCM2835_SFLASH
+	(void)SPI_SETFREQUENCY(dev, 2000000);
+#else /* CONFIG_BCM2835_SFLASH */
 	(void)SPI_SETFREQUENCY(dev, 20000000);
+#endif /* CONFIG_BCM2835_SFLASH */
 }
 
 /************************************************************************************
@@ -330,6 +391,9 @@ static inline int m25p_readid(struct m25p_dev_s *priv)
 	uint16_t manufacturer;
 	uint16_t memory;
 	uint16_t capacity;
+#ifdef CONFIG_BCM2835_SFLASH
+	unsigned char buf[BCM2835_HEAD];
+#endif
 
 	fvdbg("priv: %p\n", priv);
 
@@ -340,10 +404,18 @@ static inline int m25p_readid(struct m25p_dev_s *priv)
 
 	/* Send the "Read ID (RDID)" command and read the first three ID bytes */
 
+#ifdef CONFIG_BCM2835_SFLASH
+	buf[0] = M25P_RDID;
+	SPI_RECVBLOCK(priv->dev, &buf, BCM2835_HEAD);
+	manufacturer = buf[1];
+	memory = buf[2];
+	capacity = buf[3];
+#else
 	(void)SPI_SEND(priv->dev, M25P_RDID);
 	manufacturer = SPI_SEND(priv->dev, M25P_DUMMY);
 	memory = SPI_SEND(priv->dev, M25P_DUMMY);
 	capacity = SPI_SEND(priv->dev, M25P_DUMMY);
+#endif
 
 	/* Deselect the FLASH and unlock the bus */
 
@@ -439,6 +511,9 @@ static inline int m25p_readid(struct m25p_dev_s *priv)
 static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 {
 	uint8_t status;
+#ifdef CONFIG_BCM2835_SFLASH
+	char buf[BCM2835_HEAD];
+#endif							/* CONFIG_BCM2835_SFLASH */
 
 	/* Loop as long as the memory is busy with a write cycle */
 
@@ -447,6 +522,13 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 
 		SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
 
+#ifdef CONFIG_BCM2835_SFLASH
+		/* Send "Read Status Register (RDSR)" command */
+		buf[0] = M25P_RDSR;
+
+		SPI_RECVBLOCK(priv->dev, &buf, 2);
+		status = buf[1];
+#else							/* CONFIG_BCM2835_SFLASH */
 		/* Send "Read Status Register (RDSR)" command */
 
 		(void)SPI_SEND(priv->dev, M25P_RDSR);
@@ -454,6 +536,7 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 		/* Send a dummy byte to generate the clock needed to shift out the status */
 
 		status = SPI_SEND(priv->dev, M25P_DUMMY);
+#endif							/* CONFIG_BCM2835_SFLASH */
 
 		/* Deselect the FLASH */
 
@@ -466,7 +549,12 @@ static void m25p_waitwritecomplete(struct m25p_dev_s *priv)
 
 		if ((status & M25P_SR_WIP) != 0) {
 			m25p_unlock(priv->dev);
+#ifdef CONFIG_BCM2835_SFLASH
+	/* strange, but sleed do not work in BCM2835 */
+			up_udelay(1000);
+#else							/* CONFIG_BCM2835_SFLASH */
 			usleep(1000);
+#endif							/* CONFIG_BCM2835_SFLASH */
 			m25p_lock(priv->dev);
 		}
 	} while ((status & M25P_SR_WIP) != 0);
@@ -501,6 +589,9 @@ static void m25p_writeenable(struct m25p_dev_s *priv)
 static void m25p_sectorerase(struct m25p_dev_s *priv, off_t sector, uint8_t type)
 {
 	off_t offset;
+#ifdef CONFIG_BCM2835_SFLASH
+	char buf[BCM2835_HEAD];
+#endif							/* CONFIG_BCM2835_SFLASH */
 
 #ifdef CONFIG_M25P_SUBSECTOR_ERASE
 	if (priv->subsectorshift > 0) {
@@ -529,6 +620,20 @@ static void m25p_sectorerase(struct m25p_dev_s *priv, off_t sector, uint8_t type
 
 	SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
 
+#ifdef CONFIG_BCM2835_SFLASH
+	/* Send the "Sector Erase (SE)" or Sub-Sector Erase (SSE) instruction
+	 * that was passed in as the erase type.
+	 */
+	buf[0] = type;
+
+	/* Send the page offset high byte first. */
+	buf[1] = (offset >> 16) & 0xff;
+	buf[2] = (offset >> 8) & 0xff;
+	buf[3] = offset & 0xff;
+
+	/* Then send command & address */
+	SPI_SNDBLOCK(priv->dev, &buf, BCM2835_HEAD);
+#else							/* CONFIG_BCM2835_SFLASH */
 	/* Send the "Sector Erase (SE)" or Sub-Sector Erase (SSE) instruction
 	 * that was passed in as the erase type.
 	 */
@@ -543,6 +648,7 @@ static void m25p_sectorerase(struct m25p_dev_s *priv, off_t sector, uint8_t type
 	(void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
 	(void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
 	(void)SPI_SEND(priv->dev, offset & 0xff);
+#endif							/* CONFIG_BCM2835_SFLASH */
 
 	/* Deselect the FLASH */
 
@@ -586,14 +692,66 @@ static inline int m25p_bulkerase(struct m25p_dev_s *priv)
 }
 
 /************************************************************************************
+ * Name:  m25p_onebytewrite
+ ************************************************************************************/
+
+#ifdef CONFIG_BCM2835_SFLASH
+static inline void m25p_onebytewrite(struct m25p_dev_s *priv, FAR const uint8_t buffer, off_t offset)
+{
+	char buf[BCM2835_HEAD+1];
+
+	m25p_lock(priv->dev);
+	/* Wait for any preceding write to complete.  We could simplify things by
+	 * perform this wait at the end of each write operation (rather than at
+	 * the beginning of ALL operations), but have the wait first will slightly
+	 * improve performance.
+	 */
+
+	m25p_waitwritecomplete(priv);
+
+	/* Enable the write access to the FLASH */
+
+	m25p_writeenable(priv);
+
+	/* Select this FLASH part */
+
+	SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+	/* Send "Page Program (PP)" command */
+	buf[0] = M25P_PP;
+
+	/* Send the page offset high byte first. */
+	buf[1] = (offset >> 16) & 0xff;
+	buf[2] = (offset >> 8) & 0xff;
+	buf[3] = offset & 0xff;
+
+	/* Then write the specified number of bytes plus dummy byte */
+	buf[4] = buffer;
+	SPI_SNDBLOCK(priv->dev, &buf, BCM2835_HEAD+1);
+
+	/* Deselect the FLASH: Chip Select high */
+
+	SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+
+	m25p_unlock(priv->dev);
+}
+#endif							/* CONFIG_BCM2835_SFLASH */
+
+/************************************************************************************
  * Name:  m25p_pagewrite
  ************************************************************************************/
 
 static inline void m25p_pagewrite(struct m25p_dev_s *priv, FAR const uint8_t *buffer, off_t page)
 {
 	off_t offset = page << priv->pageshift;
-
 	fvdbg("page: %08lx offset: %08lx\n", (long)page, (long)offset);
+
+#ifdef CONFIG_BCM2835_SFLASH
+	ssize_t count = 1 << priv->pageshift;
+	while (count-- > 0) {
+		m25p_onebytewrite(priv, *buffer++, offset++);
+	}
+#else							/* CONFIG_BCM2835_SFLASH */
 
 	/* Wait for any preceding write to complete.  We could simplify things by
 	 * perform this wait at the end of each write operation (rather than at
@@ -628,6 +786,7 @@ static inline void m25p_pagewrite(struct m25p_dev_s *priv, FAR const uint8_t *bu
 	/* Deselect the FLASH: Chip Select high */
 
 	SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+#endif							/* CONFIG_BCM2835_SFLASH */
 	fvdbg("Written\n");
 }
 
@@ -639,6 +798,11 @@ static inline void m25p_pagewrite(struct m25p_dev_s *priv, FAR const uint8_t *bu
 static inline void m25p_bytewrite(struct m25p_dev_s *priv, FAR const uint8_t *buffer, off_t offset, uint16_t count)
 {
 	fvdbg("offset: %08lx  count:%d\n", (long)offset, count);
+#ifdef CONFIG_BCM2835_SFLASH
+	while (count-- > 0) {
+		m25p_onebytewrite(priv, *buffer++, offset++);
+	}
+#else							/* CONFIG_BCM2835_SFLASH */
 
 	/* Wait for any preceding write to complete.  We could simplify things by
 	 * perform this wait at the end of each write operation (rather than at
@@ -673,6 +837,7 @@ static inline void m25p_bytewrite(struct m25p_dev_s *priv, FAR const uint8_t *bu
 	/* Deselect the FLASH: Chip Select high */
 
 	SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+#endif							/* CONFIG_BCM2835_SFLASH */
 	fvdbg("Written\n");
 }
 #endif
@@ -785,6 +950,53 @@ static ssize_t m25p_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t n
 	return nblocks;
 }
 
+#ifdef CONFIG_BCM2835_SFLASH
+/************************************************************************************
+ * Name: m25p_onebyteread
+ ************************************************************************************/
+
+static uint8_t m25p_onebyteread(FAR struct m25p_dev_s *priv, off_t offset)
+{
+	unsigned char buf[BCM2835_HEAD+1];
+
+	/* Lock the SPI bus NOW because the following call must be executed with
+	 * the bus locked.
+     */
+
+	m25p_lock(priv->dev);
+
+	/* Wait for any preceding write to complete.  We could simplify things by
+	 * perform this wait at the end of each write operation (rather than at
+	 * the beginning of ALL operations), but have the wait first will slightly
+	 * improve performance.
+	 */
+
+	m25p_waitwritecomplete(priv);
+
+	/* Select this FLASH part */
+
+	SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+
+	/* Send "Read from Memory " instruction */
+	buf[0] = M25P_READ;
+
+	/* Send the page offset high byte first. */
+	buf[1] = (offset >> 16) & 0xff;
+	buf[2] = (offset >> 8) & 0xff;
+	buf[3] = offset & 0xff;
+
+	/* Then read all of the requested bytes plus additional byte */
+	SPI_RECVBLOCK(priv->dev, &buf, BCM2835_HEAD+1);
+
+	/* Deselect the FLASH and unlock the SPI bus */
+
+	SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+	m25p_unlock(priv->dev);
+
+	return buf[4];
+}
+#endif							/* CONFIG_BCM2835_SFLASH */
+
 /************************************************************************************
  * Name: m25p_read
  ************************************************************************************/
@@ -795,6 +1007,15 @@ static ssize_t m25p_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
 
 	fvdbg("offset: %08lx nbytes: %d\n", (long)offset, (int)nbytes);
 
+#ifdef CONFIG_BCM2835_SFLASH
+	/* BCM2835 SFLASG connected to outside as module, it is very slow now */
+	size_t count = nbytes;
+	uint8_t byte;
+	while (count-- > 0) {
+		byte = m25p_onebyteread(priv, offset++);
+		*buffer++ = byte;
+	}
+#else							/* CONFIG_BCM2835_SFLASH */
 	/* Lock the SPI bus NOW because the following call must be executed with
 	 * the bus locked.
      */
@@ -831,6 +1052,7 @@ static ssize_t m25p_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
 
 	SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
 	m25p_unlock(priv->dev);
+#endif							/* CONFIG_BCM2835_SFLASH */
 
 	fvdbg("return nbytes: %d\n", (int)nbytes);
 	return nbytes;

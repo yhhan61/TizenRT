@@ -151,7 +151,7 @@ Once LOGM is approved, each module should have its own index
 /**
  * @brief  Error debug
  * @details @b #include <debug.h>
- * @since Tizen RT v1.0
+ * @since TizenRT v1.0
  */
 #define dbg(format, ...) \
 	syslog(LOG_ERR, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
@@ -162,7 +162,7 @@ Once LOGM is approved, each module should have its own index
 /**
  * @brief  Error debug for low-level
  * @details @b #include <debug.h>
- * @since Tizen RT v1.0
+ * @since TizenRT v1.0
  */
 #define lldbg(format, ...) \
 	lowsyslog(LOG_ERR, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
@@ -188,7 +188,7 @@ Once LOGM is approved, each module should have its own index
 /**
  * @brief  Warning debug
  * @details @b #include <debug.h>
- * @since Tizen RT v1.0
+ * @since TizenRT v1.0
  */
 #define wdbg(format, ...) \
 	syslog(LOG_WARNING, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
@@ -197,7 +197,7 @@ Once LOGM is approved, each module should have its own index
 /**
  * @brief  Warning debug for low-level
  * @details @b #include <debug.h>
- * @since Tizen RT v1.0
+ * @since TizenRT v1.0
  */
 #define llwdbg(format, ...) \
 	lowsyslog(LOG_WARNING, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
@@ -223,7 +223,7 @@ Once LOGM is approved, each module should have its own index
 /**
  * @brief  Informational(Verbose) debug
  * @details @b #include <debug.h>
- * @since Tizen RT v1.0
+ * @since TizenRT v1.0
  */
 #define vdbg(format, ...) \
 	syslog(LOG_INFO, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
@@ -232,7 +232,7 @@ Once LOGM is approved, each module should have its own index
 /**
  * @brief  Informational(Verbose) debug for low-level
  * @details @b #include <debug.h>
- * @since Tizen RT v1.0
+ * @since TizenRT v1.0
  */
 #define llvdbg(format, ...) \
 	lowsyslog(LOG_INFO, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
@@ -646,6 +646,31 @@ Once LOGM is approved, each module should have its own index
 #define i2cllvdbg(x...)
 #endif
 
+#ifdef CONFIG_DEBUG_I2S_ERROR
+#define i2serr(format, ...)    dbg(format, ##__VA_ARGS__)
+#define i2slldbg(format, ...)  lldbg(format, ##__VA_ARGS__)
+#else
+#define i2serr(x...)
+#define i2slldbg(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_I2S_WARN
+#define i2swarn(format, ...)    wdbg(format, ##__VA_ARGS__)
+#define i2sllwdbg(format, ...)  llwdbg(format, ##__VA_ARGS__)
+#else
+#define i2swarn(x...)
+#define i2sllwdbg(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_I2S_INFO
+#define i2sinfo(format, ...)   vdbg(format, ##__VA_ARGS__)
+#define i2sllvdbg(format, ...) llvdbg(format, ##__VA_ARGS__)
+#else
+#define i2sinfo(x...)
+#define i2sllvdbg(x...)
+#endif
+
+
 #ifdef CONFIG_NET_LWIP_DEBUG
 #define lwipdbg(format, ...)    dbg(format, ##__VA_ARGS__)
 #define lwiplldbg(format, ...)  lldbg(format, ##__VA_ARGS__)
@@ -658,6 +683,24 @@ Once LOGM is approved, each module should have its own index
 #define ttdbg(format, ...) dbg(format, ##__VA_ARGS__)
 #else
 #define ttdbg(format, ...)
+#endif
+
+#ifdef CONFIG_DEBUG_USB_ERROR
+#  define uerr(format, ...)     _err(format, ##__VA_ARGS__)
+#else
+#  define uerr(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_USB_WARN
+#  define uwarn(format, ...)   _warn(format, ##__VA_ARGS__)
+#else
+#  define uwarn(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_USB_INFO
+#  define uinfo(format, ...)   vdbg(format, ##__VA_ARGS__)
+#else
+#  define uinfo(x...)
 #endif
 
 #else							/* CONFIG_CPP_HAVE_VARARGS */
@@ -1144,7 +1187,7 @@ extern "C" {
  * @param[in] buffer buffer
  * @param[in] buflen length for buffer
  * @return void
- * @since Tizen RT v1.1
+ * @since TizenRT v1.1
  */
 
 void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer, unsigned int buflen);

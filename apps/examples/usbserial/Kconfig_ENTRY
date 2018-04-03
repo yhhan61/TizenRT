@@ -1,0 +1,3 @@
+config ENTRY_USBSERIAL
+	bool "USB to Serial bridge example"
+	depends on EXAMPLES_USBSERIAL

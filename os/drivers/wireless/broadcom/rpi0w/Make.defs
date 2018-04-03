@@ -1,0 +1,61 @@
+###########################################################################
+#
+# Copyright 2018 DIGNSYS All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+#
+###########################################################################
+
+ifeq ($(CONFIG_BRCM_WLAN),y)
+
+CSRCS += impl_wwd_buffer.c \
+	impl_host_platform.c \
+	tlv.c \
+	brcm_wlan_driver.c \
+	impl_eth_send_eapol.c \
+	impl_wwd_bus.c \
+	impl_wwd_network.c \
+	impl_wwd_rtos_thread.c \
+	impl_wwd_rtos_semaphore.c \
+	impl_wwd_rtos_misc.c \
+	brcmfmac43430-sdio.bin.c \
+	brcmfmac43430-sdio.txt.c \
+	impl_wwd_resource.c \
+	impl_wwd_management.c \
+	impl_cyw43438_wpa_ops.c
+
+DEPPATH += --dep-path wireless$(DELIM)broadcom$(DELIM)rpi0w
+VPATH += :wireless$(DELIM)broadcom$(DELIM)rpi0w
+
+CFLAGS += -I$(TOPDIR)$(DELIM)include$(DELIM)net
+CFLAGS += -I$(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)rpi0w$(DELIM)wiced
+CFLAGS += -I$(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)include
+CFLAGS += -I$(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)include$(DELIM)network
+CFLAGS += -I$(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)include$(DELIM)platform
+CFLAGS += -I$(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)include$(DELIM)RTOS
+CFLAGS += -I$(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)rpi0w
+#CFLAGS += -I$(TOPDIR)$(DELIM)../$(DELIM)external$(DELIM)wpa_supplicant$(DELIM)src
+#CFLAGS += -I$(TOPDIR)$(DELIM)../$(DELIM)external$(DELIM)wpa_supplicant$(DELIM)src$(DELIM)utils
+#CFLAGS += -I$(TOPDIR)$(DELIM)../$(DELIM)external$(DELIM)wpa_supplicant$(DELIM)src$(DELIM)rsn_supp
+
+CFLAGS += "-DMX_LOG_PHASE_4"
+CFLAGS += "-DWWD_DIRECT_RESOURCES"
+#CFLAGS += "-DWPRINT_ENABLE_WWD_ERROR"
+#CFLAGS += "-DWPRINT_ENABLE_WWD_DEBUG"
+#CFLAGS += "-DWPRINT_ENABLE_WWD_ERROR"
+CFLAGS += "-DWICED_STARTUP_DELAY"
+#CFLAGS += "-DUSE_LED_BLINK"
+CFLAGS += "-DADD_LWIP_EAPOL_SUPPORT"
+CFLAGS += "-DWPA_SUPPLICANT_SUPPORT"
+CFLAGS += "-DSUPPORT_DUMP_BYTES"
+endif

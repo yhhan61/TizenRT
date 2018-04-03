@@ -5,6 +5,13 @@
 
 if DRIVERS_WIRELESS
 
+	if ARCH_CHIP_BCM2835
+#source drivers/wireless/brcm/Kconfig
+source drivers/wireless/broadcom/Kconfig
+	endif
+
+	if SELECT_SCSC_WLAN
 source drivers/wireless/scsc/Kconfig
+	endif
 
 endif # DRIVERS_WIRELESS

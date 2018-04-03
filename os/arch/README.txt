@@ -140,3 +140,4 @@ arch/arm - ARM-based micro-controllers
       arch/arm/src/arm and arch/arm/include/arm
       arch/arm/src/armv7-m and arch/arm/include/armv7-m
       arch/arm/src/armv7-r and arch/arm/include/armv7-r
+      arch/arm/src/armv6 and arch/arm/include/armv6

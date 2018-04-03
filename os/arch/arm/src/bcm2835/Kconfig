@@ -14,7 +14,7 @@ config ARCH_CHIP_RP0W
 	bool "RP0W"
 	select RP0W
 	select ARCH_ARM1176
-	select ARCH_USE_MMU
+#	select ARCH_USE_MMU
 	select ARCH_HAVE_RESET
 
 endchoice
@@ -29,6 +29,7 @@ config RP0W
 	select BCM2835_HAVE_UART1
 	select BCM2835_HAVE_WATCHDOG
 	select BCM2835_HAVE_SFLASH
+	select BCM2835_HAVE_OTG
 
 menu "BCM2835 Peripheral Support"
 
@@ -84,6 +85,10 @@ config BCM2835_HAVE_SFLASH
 	default n
 
 config BCM2835_HAVE_SPI
+	bool
+	default n
+
+config BCM2835_HAVE_OTG
 	bool
 	default n
 
@@ -178,6 +183,14 @@ config BCM2835_SPI
 	bool "SPI"
 	depends on BCM2835_HAVE_SPI
 	default y
+
+config BCM2835_OTG
+	bool "USB OTG"
+	default n
+	depends on BCM2835_HAVE_OTG
+	select USBHOST_HAVE_ASYNCH if USBHOST
+	select SCHED_WORKQUEUE
+	select SCHED_LPWORK
 
 config BCM2835_WATCHDOG
 	bool "Watchdog"

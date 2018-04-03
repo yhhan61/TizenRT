@@ -101,6 +101,18 @@ config LIBC_IOCTL_VARIADIC
 		this should just result in a garbage value for arg.  But you may
 		discover cases where something worse happens!
 
+config LIBC_WCHAR
+	bool "Enable wide-characters (Unicode) support"
+	default n
+	---help---
+		By default, wide-characters support is disabled.
+
+config LIBC_LOCALE
+	bool "Enable I18N (LOCALE) support"
+	default n
+	---help---
+		By default, i18n (locale) support is disabled.
+
 config LIB_RAND_ORDER
 	int "Order of the random number generate"
 	default 1
@@ -159,9 +171,7 @@ config LIBC_STRERROR
 		strings.  But it can also require a lot of memory.  If this option is selected,
 		strerror() will still exist in the build but it will not decode error values.
 		This option should be used by other logic to decide if it should use strerror()
-		or not.  For example, the NSH application will not use strerror() if this
-		option is not selected; perror() will not use strerror() is this option is not
-		selected (see also NSH_STRERROR).
+		or not.
 
 config LIBC_STRERROR_SHORT
 	bool "Use short error descriptions in strerror()"

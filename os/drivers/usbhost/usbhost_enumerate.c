@@ -139,7 +139,9 @@ static void usbhost_putle16(uint8_t *dest, uint16_t val)
 
 static inline int usbhost_devdesc(FAR const struct usb_devdesc_s *devdesc, FAR struct usbhost_id_s *id)
 {
-	/* Clear the ID info */
+	uvdbg("=================================\nlen:%02x type:%02x classid:%02X subclass:%02x protocol:%02x vendor:%02x%02x product:%02x%02x device:%02x%02x\n",
+			devdesc->len, devdesc->type, devdesc->classid, devdesc->subclass, devdesc->protocol, 
+			devdesc->vendor[1], devdesc->vendor[0], devdesc->product[1], devdesc->product[0], devdesc->device[1], devdesc->device[0]);
 
 	memset(id, 0, sizeof(struct usbhost_id_s));
 
@@ -154,7 +156,7 @@ static inline int usbhost_devdesc(FAR const struct usb_devdesc_s *devdesc, FAR s
 	id->vid = usbhost_getle16(devdesc->vendor);
 	id->pid = usbhost_getle16(devdesc->product);
 
-	uvdbg("class:%d subclass:%04x protocol:%04x vid:%d pid:%d\n", id->base, id->subclass, id->proto, id->vid, id->pid);
+	uvdbg("class:%02x subclass:%02x protocol:%02x vid:%04x pid:%04x\n", id->base, id->subclass, id->proto, id->vid, id->pid);
 	return OK;
 }
 

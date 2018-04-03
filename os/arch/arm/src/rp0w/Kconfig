@@ -42,6 +42,7 @@ config RP0W_FLASH_PART
 	select MTD_PARTITION
 	select MTD_PROGMEM
 	depends on BCM2835_SFLASH
+	depends on NFILE_DESCRIPTORS != 0
 	---help---
 		Enables creation of partitions on the FLASH
 

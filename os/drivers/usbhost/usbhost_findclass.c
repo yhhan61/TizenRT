@@ -106,6 +106,19 @@ static bool usbhost_idmatch(const struct usbhost_id_s *classid, const struct usb
 {
 	uvdbg("Compare to class:%d subclass:%d protocol:%d vid:%04x pid:%04x\n", classid->base, classid->subclass, classid->proto, classid->vid, classid->pid);
 
+#ifdef CONFIG_CP210X_UART
+	/* Vendor specific... */
+	if (devid->base == USB_CLASS_VENDOR_SPEC) {
+		if ((classid->subclass == 0x00) && (devid->proto == 0x00)) {
+			/* guess, this is Silicon Lab, cp210x, USB-to-Serial bridge */
+			if (devid->vid == 0x10c4 && devid->pid == 0xea60) {
+				uvdbg("This is Silicon Lab, CP210X, USB-to-Serial Bridge !!!\n");
+				return true;
+			}
+		}
+	}
+#endif /* CONFIG_CP210X_UART */
+
 	/* The base class ID, subclass and protocol have to match up in any event */
 
 	if (devid->base == classid->base && devid->subclass == classid->subclass && devid->proto == classid->proto) {

@@ -281,22 +281,25 @@ static void scsc_wpa_ctrl_iface_init(void)
 int board_app_initialize(void)
 {
 	int ret;
+#ifdef CONFIG_RP0W_AUTOMOUNT
 #if defined(CONFIG_RAMMTD) && defined(CONFIG_FS_SMARTFS)
 	int bufsize = CONFIG_RAMMTD_ERASESIZE * CONFIG_ARTIK053_RAMMTD_NEBLOCKS;
 	static uint8_t *rambuf;
 	struct mtd_dev_s *mtd;
 #endif							/* CONFIG_RAMMTD */
+#endif /* CONFIG_RP0W_AUTOMOUNT */
 
 	rp0w_configure_partitions();
 
+#ifdef CONFIG_RP0W_AUTOMOUNT
 #ifdef CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME
 	/* Initialize and mount user partition (if we have) */
-	lldbg("Make smartfs on %s : please wait... \n", CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME);
+	lowsyslog(LOG_INFO, "Make smartfs on %s : please wait... \n", CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME);
 	ret = mksmartfs(CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME, false);
 	if (ret != OK) {
 		lldbg("ERROR: mksmartfs on %s failed", CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME);
 	} else {
-		lldbg("Mounting smartfs %s -> %s\n", CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME, CONFIG_RP0W_AUTOMOUNT_USERFS_MOUNTPOINT);
+		lowsyslog(LOG_INFO, "Mounting smartfs %s -> %s\n", CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME, CONFIG_RP0W_AUTOMOUNT_USERFS_MOUNTPOINT);
 		ret = mount(CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME, CONFIG_RP0W_AUTOMOUNT_USERFS_MOUNTPOINT, "smartfs", 0, NULL);
 		if (ret != OK) {
 			lldbg("ERROR: mounting '%s' failed\n", CONFIG_RP0W_AUTOMOUNT_USERFS_DEVNAME);
@@ -334,6 +337,7 @@ int board_app_initialize(void)
 		}
 	}
 #endif							/* CONFIG_RAMMTD */
+#endif /* CONFIG_RP0W_AUTOMOUNT */
 
 #if defined(CONFIG_RTC_DRIVER)
 	{

@@ -51,5 +51,7 @@
 ############################################################################
 
 ifeq ($(CONFIG_NETUTILS_WIFI),y)
+#ifeq ($(CONFIG_SCSC_WLAN),y)
 CONFIGURED_EXT += slsi_wifi
+#endif
 endif

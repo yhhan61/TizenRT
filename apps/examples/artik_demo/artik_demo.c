@@ -39,7 +39,11 @@
 #include <dm/dm_error.h>
 #include <dm/dm_connectivity.h>
 
+#ifdef CONFIG_BRCM_WLAN
+#include <brcm_wifi/brcm_wifi_api.h>
+#else
 #include <slsi_wifi/slsi_wifi_api.h>
+#endif
 
 /****************************************************************************
  * Definitions
@@ -153,9 +157,11 @@ static const char g_http500[] = "500 ";
 #define ISO_cr                     0x0d
 #define ISO_space                  0x20
 
+#ifndef CONFIG_NETUTILS_WEBCLIENT
 #define CONFIG_WEBCLIENT_MAXHTTPLINE 200
 #define CONFIG_WEBCLIENT_MAXHOSTNAME 40
 #define CONFIG_WEBCLIENT_MAXFILENAME 100
+#endif
 
 struct wget_s {
 	/* Internal status */
@@ -197,9 +203,11 @@ struct wget_s {
  * External Function Prototype
  ****************************************************************************/
 extern int artik_demo_main(int argc, char *argv[]);
+#ifndef CONFIG_BRCM_WLAN
 static conn_cb linkUpEvent(void);
 static int wifiAutoConnectInit(void);
 static int wifiAutoConnect(void);
+#endif
 static void wget_tls_debug(void *ctx, int level, const char *file, int line,
 		const char *str);
 static void wget_tls_release(struct http_client_tls_t *client);
@@ -221,6 +229,7 @@ int artik_demo_run(int argc, char *argv[]);
 const int field_count = 3;
 char *field_name[] = { "rssi", "tx_power", "channel" };
 
+#ifndef CONFIG_BRCM_WLAN
 /*
  * Check Variable whether Network Connected
  */
@@ -346,6 +355,7 @@ static int wifiAutoConnect()
 	}
 	return 1;
 }
+#endif
 
 static void wget_tls_debug(void *ctx, int level, const char *file, int line,
 		const char *str)
@@ -712,6 +722,7 @@ int send_data_to_artik(int *data)
 	char req[300], body1[50], body2[150];
 	int req_len, body_len;
 
+	memset(r_message, 0, 1024);
 	ws.buffer = r_message;
 	ws.buflen = 1024;
 
@@ -906,25 +917,28 @@ int artik_demo_run(int argc, char *argv[])
 	/*
 	 * Initialize Artik Network
 	 */
+#ifndef CONFIG_BRCM_WLAN
 	wifiAutoConnect();
+#endif
 
 	while (1) {
 		printf("Sending ... ");
 		/*
 		 * Get Rssi of network using dm_conn_get_rssi api
 		 */
+		field_value[0] = 0;
+		field_value[1] = 0;
+		field_value[2] = 0;
+
 		ret = dm_conn_get_rssi(&field_value[0]);
-		printf("%s[%d] : %d / ", field_name[0], ret, field_value[0]);
 		/*
 		 * Get Tx Power of network using dm_conn_get_tx_power api
 		 */
 		ret = dm_conn_get_tx_power(&field_value[1]);
-		printf("%s[%d] : %d / ", field_name[1], ret, field_value[1]);
 		/*
 		 * Get Channel of network using dm_conn_get_channel api
 		 */
 		ret = dm_conn_get_channel(&field_value[2]);
-		printf("%s[%d] : %d\n", field_name[2], ret, field_value[2]);
 
 		/*
 		 * Sending Data to Artik Cloud

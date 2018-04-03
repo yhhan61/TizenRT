@@ -75,6 +75,7 @@
 
 #define NR_IRQS						128
 
+#define BCM2835_IRQ_USB				9
 #define BCM2835_IRQ_UART0			57
 #define BCM2835_IRQ_UART1			29
 #define BCM2835_IRQ_ID_GPIO_0 		49

@@ -1,0 +1,4 @@
+config BRCM_WLAN
+	bool "Broadcom Wireless Module support"
+	default n
+

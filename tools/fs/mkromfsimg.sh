@@ -52,11 +52,10 @@
 ############################################################################
 
 # Make sure we understand where we are
-
-if [ ! -f tools/mkromfsimg.sh ]; then
+if [ ! -f ../tools/fs/mkromfsimg.sh ]; then
   cd .. || { echo "ERROR: cd .. failed"; exit 1; }
-  if [ ! -f tools/mkromfsimg.sh ]; then
-    error "This script must be executed from the top-level apps/ directory"
+  if [ ! -f ../tools/fs/mkromfsimg.sh ]; then
+    error "This script must be executed from the top-level os/ directory"
     exit 1
   fi
 fi
@@ -69,10 +68,6 @@ topdir=$PWD
 buildpath=${topdir}/../build
 contentsdir=${topdir}/../tools/fs/contents
 romfsimg=${buildpath}/output/bin/romfs.img
-
-system_map_srcpath=${buildpath}/output/bin/System.map
-system_map_destpath=${contentsdir}/System.map
-cp $system_map_srcpath $system_map_destpath
 
 # Sanity checks
 

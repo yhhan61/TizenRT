@@ -57,6 +57,8 @@
 #include <tinyara/config.h>
 #include <stdio.h>
 
+#ifdef CONFIG_IOTBUS_GPIO
+
 #include <tinyara/gpio.h>
 #include <iotbus/iotbus_gpio.h>
 #include <iotbus/iotbus_error.h>
@@ -169,3 +171,4 @@ iotbus_err:
 
 	return -1;
 }
+#endif

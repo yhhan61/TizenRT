@@ -90,10 +90,14 @@
 #ifdef CONFIG_ARMV7M_MPU
 #include "mpu.h"
 #endif
-
-#if defined(CONFIG_FS_ROMFS) && defined(CONFIG_FRAME_POINTER)
+#include <stdbool.h>
+#ifdef CONFIG_BOARD_ASSERT_AUTORESET
+#include <sys/boardctl.h>
+#endif
+#ifdef CONFIG_DEBUG_DISPLAY_SYMBOL
 #include <stdio.h>
 bool abort_mode = false;
+static bool recursive_abort = false;
 #endif
 
 /****************************************************************************
@@ -203,31 +207,42 @@ static int is_text_address(unsigned long programCounter)
  * Name: get_symbol
  * Below API works if there is existance of System.map file in rom fs
  ****************************************************************************/
-#ifdef CONFIG_FS_ROMFS
-void get_symbol(unsigned long search_addr, char *buffer)
+#ifdef CONFIG_DEBUG_DISPLAY_SYMBOL
+int get_symbol(unsigned long search_addr, char *buffer, size_t buflen)
 {
 	FILE *pFile;
+	int total;
 	unsigned long sym_offset;
 	unsigned long total_size;
 	unsigned long addr;
 	unsigned long next_addr;
 	int first = 0;
-	int last = 0;
+	int last;
 	int mid;
-	char line[128];
-	char data[6][128];
+	char line[128] = { '\0' };
+	char data[6][128] = { {'\0', '\0'} };
 	char c;
-	int n;
-	int i;
-	int j;
-	int k;
+	int word;
+	int ch_in_word;
+	int read_line;
+	int ch_in_line;
+
+	if (recursive_abort) {
+		/* If there is a crash in file system, below operation would
+		   lead to recursive abort, as this api will be called inside
+		   abort handler and tries to access the file system api.
+		   To avoid recursive abort, just return from here if we are
+		   already in abort mode.
+		 */
+		return -1;
+	}
 
 	pFile = fopen("/rom/System.map", "r");
 
 	/* Check if file exists */
 	if (pFile == NULL) {
 		lldbg("Could not open file: /rom/System.map\n");
-		return;
+		return -1;
 	}
 	// obtain file size:
 	fseek(pFile, 0, SEEK_END);
@@ -238,39 +253,47 @@ void get_symbol(unsigned long search_addr, char *buffer)
 	while (first <= last) {
 		fseek(pFile, mid, SEEK_SET);
 
-		// Extract characters from file and store in character c
+		/* If the file pointer is in the mid of the line, make sure
+		 * it's been properly moved to start of next line
+		 */
 		for (c = getc(pFile); c != '\n'; c = getc(pFile)) {
+			if (c == EOF) {
+				lldbg("Reached end of file and couldn't find symbol\n");
+				fclose(pFile);
+				return -1;
+			}
 		}
-		n = 0;
+
+		word = 0;
 		// Read 2 lines and Split the string as words
-		for (k = 0; k < 2; k++) {
+		for (read_line = 0; read_line < 2; read_line++) {
 			fgets(line, 128, pFile);
-			i = 0;
-			j = 0;
-			while (line[i] != '\0') {
-				if (line[i] != ' ') {
-					data[n][j++] = line[i];
+			ch_in_line = 0;
+			ch_in_word = 0;
+			while (line[ch_in_line] != '\0') {
+				if (line[ch_in_line] != ' ') {
+					data[word][ch_in_word++] = line[ch_in_line];
 				} else {
-					data[n][j++] = '\0';//insert NULL
-					n++;
-					j = 0;
+					data[word][ch_in_word] = '\0';
+					word++;
+					ch_in_word = 0;
 				}
-				i++;
-				if (line[i] == '\0') {
-					data[n][j++] = '\0';//insert NULL
-					n++;
-					j = 0;
+				ch_in_line++;
+				if (line[ch_in_line] == '\0') {
+					data[word][ch_in_word] = '\0';
+					word++;
+					ch_in_word = 0;
 				}
 			}
 		}
+		/* Convert the string data to hexadecimal */
 		addr = strtoul(data[0], NULL, 16);
 		next_addr = strtoul(data[3], NULL, 16);
 		if (search_addr >= addr && search_addr < next_addr) {
-			sprintf(buffer, "%s", data[2]);
+			total = snprintf(buffer, buflen, "%s", data[2]);
 			sym_offset = search_addr - addr;
 			total_size = next_addr - addr;
-			sprintf(buffer + strlen(buffer)-1, "+0x%lx/0x%lx", sym_offset, total_size);
-			//lldbg("Got it buffer is : %s\n", buffer);
+			snprintf(&buffer[total - 1], buflen - total, "+0x%lx/0x%lx", sym_offset, total_size);
 			break;
 		}
 		if (search_addr < addr) {
@@ -279,16 +302,19 @@ void get_symbol(unsigned long search_addr, char *buffer)
 			first = mid + 1;
 		}
 
-		mid = (first + last ) / 2;
+		mid = (first + last) / 2;
 	}
 	if (first > last) {
 		lldbg("symbol is not found in system map\n");
 		buffer = "";
 	}
 
+	/* Close the file */
 	fclose(pFile);
+
+	return 0;
 }
-#endif						/* End of CONFIG_FS_ROMFS */
+#endif
 
 /****************************************************************************
  * Name: unwind_frame_with_fp
@@ -373,13 +399,15 @@ static void unwind_backtrace_with_fp(arm_regs_t *regs, struct tcb_s *task)
 		uint32_t current_addr = stack_frame.programCounter;
 		if (unwind_frame_with_fp(&stack_frame, ustacksize) >= 0) {
 			/* Print the call stack address */
-#ifdef CONFIG_FS_ROMFS
-			char buffer[64];
-			get_symbol(current_addr, buffer);
-			lldbg("[<0x%p>] %s\n", (void *)current_addr, buffer);
-#else
-			lldbg("[<0x%p>]\n", (void *)current_addr);
+#ifdef CONFIG_DEBUG_DISPLAY_SYMBOL
+			char buffer[128];
+			if (get_symbol(current_addr, buffer, sizeof(buffer)) == 0) {
+				lldbg("[<0x%p>] %s\n", (void *)current_addr, buffer);
+			} else
 #endif
+			{
+				lldbg("[<0x%p>]\n", (void *)current_addr);
+			}
 		} else {
 			/* End of stack */
 			break;
@@ -464,6 +492,10 @@ static void up_taskdump(FAR struct tcb_s *tcb, FAR void *arg)
 #ifdef CONFIG_STACK_COLORATION
 static inline void up_showtasks(void)
 {
+	lldbg("*******************************************\n");
+	lldbg("List of all tasks in the system:\n");
+	lldbg("*******************************************\n");
+
 	/* Dump interesting properties of each task in the crash environment */
 
 	sched_foreach(up_taskdump, NULL);
@@ -843,11 +875,9 @@ static void up_dumpstate(void)
 	lldbg("*******************************************\n");
 	dump_stack();
 #endif
+
 	/* Dump the state of all tasks (if available) */
 
-	lldbg("*******************************************\n");
-	lldbg("List of all tasks in the system:\n");
-	lldbg("*******************************************\n");
 	up_showtasks();
 
 #ifdef CONFIG_FRAME_POINTER
@@ -900,7 +930,14 @@ static void _up_assert(int errorcode)
 void up_assert(const uint8_t *filename, int lineno)
 {
 	board_autoled_on(LED_ASSERTION);
-#if defined(CONFIG_FS_ROMFS) && defined(CONFIG_FRAME_POINTER)
+#ifdef CONFIG_DEBUG_DISPLAY_SYMBOL
+	/* First time, when code reaches here abort_mode will be false and
+	   for next iteration (recursive abort case), abort_mode is already
+	   set to true and thus we can assume that we are in recursive abort
+	   mode and thus set the flag accordingly */
+	if (abort_mode) {
+		recursive_abort = true;
+	}
 	abort_mode = true;
 #endif
 
@@ -913,6 +950,10 @@ void up_assert(const uint8_t *filename, int lineno)
 
 #ifdef CONFIG_BOARD_CRASHDUMP
 	board_crashdump(up_getsp(), this_task(), (uint8_t *)filename, lineno);
+#endif
+
+#ifdef CONFIG_BOARD_ASSERT_AUTORESET
+	(void)boardctl(BOARDIOC_RESET, 0);
 #endif
 
 	_up_assert(EXIT_FAILURE);

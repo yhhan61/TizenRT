@@ -99,6 +99,7 @@ CHIP_CSRCS += bcm2835_boot.c bcm2835_irq.c
 CHIP_CSRCS += bcm2835_serial.c
 CHIP_CSRCS += bcm2835_mac.c
 CHIP_CSRCS += bcm2835_systemreset.c
+CHIP_CSRCS += bcm2835_mailbox.c
 CHIP_CSRCS += bcm2835_propertytags.c
 ifeq ($(CONFIG_BCM2835_WATCHDOG),y)
 CHIP_CSRCS += bcm2835_watchdog.c
@@ -115,6 +116,12 @@ endif
 
 ifeq ($(CONFIG_BCM2835_SPI),y)
 CHIP_CSRCS += bcm2835_spi.c
+endif
+
+ifeq ($(CONFIG_USBHOST),y)
+ifeq ($(CONFIG_BCM2835_OTG),y)
+CHIP_CSRCS += bcm2835_otghost.c bcm2835_usbhost_trace.c
+endif
 endif
 
 ifeq ($(CONFIG_BCM2835_ADC),y)

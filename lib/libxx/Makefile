@@ -59,13 +59,15 @@ CSRCS =
 
 CXXSRCS  = libxx_cxapurevirtual.cxx libxx_eabi_atexit.cxx  libxx_cxa_atexit.cxx
 
-ifneq ($(CONFIG_UCLIBCXX),y)
-CXXSRCS += libxx_delete.cxx libxx_deletea.cxx libxx_new.cxx libxx_newa.cxx
-CXXSRCS += libxx_stdthrow.cxx
+ifneq ($(CONFIG_LIBCXX),y)
+CXXSRCS += libxx_delete.cxx libxx_delete_sized.cxx libxx_deletea.cxx
+CXXSRCS += libxx_deletea_sized.cxx libxx_new.cxx libxx_newa.cxx
+CXXSRCS += libxx_stdthrow.cxx libxx_cxa_guard.cxx
 else
-ifneq ($(UCLIBCXX_EXCEPTION),y)
+ifneq ($(CONFIG_LIBCXX_EXCEPTION),y)
 CXXSRCS += libxx_stdthrow.cxx
 endif
+CXXSRCS += libxx_cxa_guard.cxx
 endif
 
 # Paths
@@ -73,18 +75,9 @@ endif
 DEPPATH = --dep-path .
 VPATH = .
 
-# Include the uClibc++ Make.defs file if selected.  If it is included,
-# the uClibc++/Make.defs file will add its files to the source file list,
-# add its DEPPATH info, and will add the appropriate paths to the VPATH
-# variable
-#
-# Note that an error will occur if you select CONFIG_LIBXX_UCLIBCXX
-# without installing the uClibc++ package.  This is intentional to let
-# you know about the configuration problem.  Refer to misc/uClibc++/README.txt
-# for more information
-
-ifeq ($(CONFIG_UCLIBCXX),y)
-include uClibc++/Make.defs
+# Include the llvm libcxx Make.defs file if selected.
+ifeq ($(CONFIG_LIBCXX),y)
+include libcxx/Make.defs
 endif
 
 # Object Files
@@ -99,6 +92,7 @@ OBJS = $(AOBJS) $(COBJS) $(CXXOBJS)
 BIN = libcxx$(LIBEXT)
 
 all: $(BIN)
+.PHONY: depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)

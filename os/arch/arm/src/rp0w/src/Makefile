@@ -63,6 +63,10 @@ ifeq ($(CONFIG_MTD_PROGMEM),y)
 CSRCS += bcm2835_progmem.c
 endif
 
+ifeq ($(CONFIG_BCM2835_OTG),y)
+CSRCS += bcm2835_usb.c
+endif
+
 ifeq ($(CONFIG_BRCM_WLAN),y)
 CSRCS += bcm2835_wlan.c
 endif

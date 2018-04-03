@@ -192,6 +192,9 @@ static void board_gpio_initialize(void)
 			39, GPIO_ALT3 | GPIO_PULLUP | GPIO_PORT3 | GPIO_PIN9
 		},	/* BCM2835_GPIO_39 */
 		{
+			47, GPIO_OUTPUT | GPIO_PORT4 | GPIO_PIN7
+		},	/* BCM2835_GPIO_47 */
+		{
 			48, GPIO_ALT0 | GPIO_FLOAT | GPIO_PORT4 | GPIO_PIN8
 		},	/* BCM2835_GPIO_48 */
 		{
@@ -319,6 +322,7 @@ void bcm2835_board_initialize(void)
 	/* BCM2835 use SPI Serial flash, do not need to init any device */
 #endif
 
+#if 0 // HSLEE
 #ifdef HAVE_SDIO
 	/* Initialize the SDIO block driver */
 	if (bcm2835_sdio_initialize() != OK) {
@@ -326,23 +330,8 @@ void bcm2835_board_initialize(void)
 		return ret;
 	}
 #endif
-
-#ifdef HAVE_USBHOST
-	/* Initialize USB host operation.  stm32_usbhost_initialize() starts a thread
-	 * will monitor for USB connection and disconnection events.
-	 */
-	if (bcm2835_usbhost_initialize() != OK) {
-		lldbg("Failed to initialize USB host\n");
-		return ret;
-	}
 #endif
 
-#ifdef HAVE_USBMONITOR
-	/* Start the USB Monitor */
-	if (usbmonitor_start(0, NULL) != OK) {
-		udbg("Start USB monitor\n");
-	}
-#endif
 }
 
 #ifdef CONFIG_BOARD_INITIALIZE
@@ -363,6 +352,8 @@ void board_initialize(void)
 {
 	rp0w_clear_bootcount();
 
+	board_gpio_initialize();
+
 	/* Perform app-specific initialization here instaed of from the TASH. */
 	board_app_initialize();
 
@@ -370,14 +361,31 @@ void board_initialize(void)
 	board_pwm_setup();
 #endif
 
-	board_gpio_initialize();
-
 #ifdef CONFIG_BCM2835_I2C
 	board_i2c_initialize();
 #endif
 
+#ifdef CONFIG_USBHOST
+	/* Initialize USB host operation.  bcm2835_usbhost_initialize() starts a thread
+	 * will monitor for USB connection and disconnection events.
+	 */
+	if (bcm2835_usbhost_initialize() != OK) {
+		lldbg("Failed to initialize USB host\n");
+	}
+#endif
+
+#ifdef HAVE_USBMONITOR
+	/* Start the USB Monitor */
+	if (usbmonitor_start(0, NULL) != OK) {
+		lldbg("Failed to Start USB monitor\n");
+	}
+#endif
+
+#if 0 /* HSLEE@DIGNSYS */
 #ifdef CONFIG_BRCM_WLAN
-	slsi_driver_initialize();
+extern void rpi0w_brcm_wlan_driver_initialize(void);
+	rpi0w_brcm_wlan_driver_initialize();
+#endif
 #endif
 }
 #endif							/* CONFIG_BOARD_INITIALIZE */

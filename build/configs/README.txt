@@ -146,6 +146,8 @@ configs/artik053
 configs/sidk_s5jt200
   Samsung IoT Development Kit for S5JT200
 
+configs/rp0w
+  Rasberry Pi Zero W
 
 Configuring TinyAra
 ^^^^^^^^^^^^^^^^^^^

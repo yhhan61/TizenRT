@@ -362,23 +362,16 @@ static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
 static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer, void *rxbuffer, size_t nwords)
 {
 	FAR struct bcm2835_spidev_s *priv = (FAR struct bcm2835_spidev_s *)dev;
+	unsigned int cs_reg;
 
 	/* Clear TX and RX fifos. */
-	unsigned int cs_reg;
 	cs_reg = bcm2835_rd(priv, BCM2835_SPI_CS);
 	cs_reg |= SPI_CS_CLEAR;
 	bcm2835_wr(priv, BCM2835_SPI_CS, cs_reg);
 
 	/* set Tx/Rx buffer & transfer count */
-	if (txbuffer == NULL) 
-		priv->txbuf = (void *)rxbuffer;
-	else 
-		priv->txbuf = (void *)txbuffer;
-
-	if (rxbuffer == NULL)
-		priv->rxbuf = (void *)txbuffer;
-	else 
-		priv->rxbuf = (void *)rxbuffer;
+	(txbuffer != NULL) ?  (priv->txbuf = (void *)txbuffer) : (priv->txbuf = (void *)rxbuffer);
+	(rxbuffer != NULL) ?  (priv->rxbuf = (void *)rxbuffer) : (priv->rxbuf = (void *)rxbuffer);
 
 	priv->tx_cnt = nwords ;
 	priv->rx_cnt = nwords ;
@@ -410,15 +403,8 @@ static void spi_polled_exchange(struct spi_dev_s *dev, const void *txbuffer, voi
 	FAR struct bcm2835_spidev_s *priv = (FAR struct bcm2835_spidev_s *)dev;
 
 	/* set Tx/Rx buffer & transfer count */
-	if (txbuffer == NULL)
-		priv->txbuf = (void *)rxbuffer;
-	else
-		priv->txbuf = (void *)txbuffer;
-
-	if (rxbuffer == NULL)
-		priv->rxbuf = (void *)txbuffer;
-	else
-		priv->rxbuf = (void *)rxbuffer;
+	(txbuffer != NULL) ?  (priv->txbuf = (void *)txbuffer) : (priv->txbuf = (void *)rxbuffer);
+	(rxbuffer != NULL) ?  (priv->rxbuf = (void *)rxbuffer) : (priv->rxbuf = (void *)rxbuffer);
 
 	priv->tx_cnt = nwords;
 	priv->rx_cnt = nwords;
@@ -491,40 +477,6 @@ static void spi_irqinitialize(struct spi_dev_s *dev)
 	up_enable_irq(BCM2835_IRQ_SPI);
 }
 
-static void spi_dev_init(struct spi_dev_s *dev)
-{
-	FAR struct bcm2835_spidev_s *priv = (FAR struct bcm2835_spidev_s *)dev;
-	uint32_t cs_reg = 0;
-
-	/* create tx/rx buffer */
-	priv->tx_cnt = 0;
-	priv->rx_cnt = 0;
-
-	cs_reg &= ~SPI_CS_REN;
-	cs_reg |= SPI_CS_CLEAR_TX | SPI_CS_CLEAR_RX;
-	bcm2835_wr(priv, BCM2835_SPI_CS, cs_reg);
-
-	bcm2835_spi_reset_hw(priv);
-}
-
-struct spi_dev_s *bcm2835_spibus_initialize(int port)
-{
-	FAR struct bcm2835_spidev_s *priv = NULL;
-
-	if (port >= SPI_PORT_MAX) {
-		return NULL;
-	}
-
-	switch (port) {
-	case 0:
-		priv = &g_spi0dev;
-		break;
-	}
-
-	lldbg("SPI %d for Master operation\n", priv->port);
-	return (struct spi_dev_s *)priv;
-}
-
 /****************************************************************************
  * Name: up_spiinitialize
  *
@@ -535,6 +487,7 @@ struct spi_dev_s *bcm2835_spibus_initialize(int port)
 struct spi_dev_s *up_spiinitialize(int port)
 {
 	FAR struct bcm2835_spidev_s *priv = NULL;
+	uint32_t cs_reg = 0;
 
 	if (port >= SPI_PORT_MAX) {
 		return NULL;
@@ -545,7 +498,7 @@ struct spi_dev_s *up_spiinitialize(int port)
 		priv = &g_spi0dev;
 		break;
 	}
-	lldbg("Prepare SPI%d for Master operation\n", priv->port);
+	lowsyslog(LOG_INFO, "Prepare SPI %d for Master operation\n",priv->port);
 
 	/* SET GPIO for the port */
 	bcm2835_configgpio(priv->gpio_clk);
@@ -561,9 +514,19 @@ struct spi_dev_s *up_spiinitialize(int port)
 	sem_init(&priv->exclsem, 0, 1);
 #endif
 
-	spi_dev_init((struct spi_dev_s *)priv);
+	/* clrear tx/rx buffer count */
+	priv->tx_cnt = 0;
+	priv->rx_cnt = 0;
 
+	cs_reg &= ~SPI_CS_REN;
+	cs_reg |= SPI_CS_CLEAR_TX | SPI_CS_CLEAR_RX;
+	bcm2835_wr(priv, BCM2835_SPI_CS, cs_reg);
+
+#ifndef CONFIG_SPI_POLLED
 	spi_irqinitialize((struct spi_dev_s *)priv);
+#endif
+
+	bcm2835_spi_reset_hw(priv);
 
 	return (struct spi_dev_s *)priv;
 }

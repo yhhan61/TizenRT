@@ -1,0 +1,46 @@
+###########################################################################
+#
+# Copyright 2018 DIGNSYS All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+#
+###########################################################################
+
+ifeq ($(CONFIG_BRCM_WLAN),y)
+
+CSRCS += wwd_thread.c \
+	wwd_ap_common.c \
+	wwd_thread_internal.c \
+	wwd_sdpcm.c \
+	wwd_internal.c \
+	wwd_management.c \
+	wwd_wifi.c \
+	wwd_logging.c \
+	wwd_eapol.c
+	
+DEPPATH += --dep-path wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal
+VPATH += :wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal
+
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)include}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)broadcom$(DELIM)WWD$(DELIM)internal}
+CFLAGS += "-DLWIP_IGMP"
+CFLAGS += "-DWICED_STARTUP_DELAY"  
+#CFLAGS += "-DWPRINT_ENABLE_WWD_ERROR"
+CFLAGS += "-DWICED_ENABLE_AUTO_COUNTRY"
+CFLAGS += "-DWICED_PLATFORM_MASKS_BUS_IRQ"
+CFLAGS += "-DMAC_ADDRESS_SET_BY_HOST"
+#CFLGAS += "-DWPRINT_ENABLE_WWD_DEBUG"
+CFLAGS += "-DARASAN_EMMC_SDIO_CYW43438"
+
+endif
